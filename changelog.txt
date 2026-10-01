@@ -1,0 +1,13 @@
+# Changes Log của Spine Preview
+# Bạn tự sửa/thêm dòng thoải mái trong file này, không cần đụng vào code.
+# Định dạng mỗi dòng:   số phiên bản | nội dung ghi chú
+# - Dòng bắt đầu bằng # hoặc dòng trống sẽ bị bỏ qua (dùng để ghi chú).
+# - Thứ tự hiển thị đúng theo thứ tự các dòng trong file này (nên để version mới nhất ở cuối).
+# - Sau khi sửa file này, chỉ cần mở lại app (không cần build lại) là thấy thay đổi.
+
+1.0.0 | tool preview
+2.0.0 | thêm tính năng Sequence
+2.0.1 | thêm logo, thêm tính năng quét chọn, thêm tính năng reset khung nhìn
+2.0.2 | Fix bugs lỗi thỉnh thoảng kéo json vào không hiển thị (dành cho máy yếu)
+2.1.0 | Sequencer đã có thêm mixer anim, thêm nút Play/Stop trên thanh scrub, hiện thêm thời gian bằng giây
+2.1.1 | Update thêm tính năng Loop Locally (tương tự như prefap trong engine game), Thêm hiển thị số frame bằng giây

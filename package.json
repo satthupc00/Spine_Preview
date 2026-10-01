@@ -1,0 +1,85 @@
+{
+  "name": "spine-preview",
+  "version": "2.1.1",
+  "description": "Preview & export tool for Spine 3.7.94 animation exports",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "set CSC_IDENTITY_AUTO_DISCOVERY=false&&electron-builder --win --x64",
+    "dist:folder": "set CSC_IDENTITY_AUTO_DISCOVERY=false&&electron-builder --win --x64 --dir",
+    "dist:installer": "set CSC_IDENTITY_AUTO_DISCOVERY=false&&electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "pixi.js": "^7.4.3",
+    "pixi-spine": "^4.0.6"
+  },
+  "author": "Mondiro",
+  "build": {
+    "appId": "com.mondiro.spinepreview",
+    "productName": "Spine Preview",
+    "copyright": "Powered by Mondiro",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "renderer.js",
+      "spine-stage.js",
+      "index.html",
+      "styles.css",
+      "package.json",
+      "build/icon.ico",
+      "!sample-assets/**",
+      "!dist/**",
+      "!**/*.map",
+      "!changelog.txt"
+    ],
+    "extraResources": [
+      { "from": "changelog.txt", "to": "changelog.txt" }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "SpinePreview-${version}-portable.${ext}",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "artifactName": "SpinePreview-${version}-setup.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Spine Preview"
+    },
+    "portable": {
+      "artifactName": "SpinePreview-${version}-portable.${ext}",
+      "unicode": true
+    },
+    "compression": "maximum"
+  }
+}

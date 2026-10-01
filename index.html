@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Spine Preview v2.1.1</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+
+    <div id="app-brand"><span class="brand-red">Mondiro</span><span class="brand-white"> Spine Preview v2.1.1</span></div>
+    <button id="changelog-btn" title="Xem nhật ký cập nhật">Changes Log</button>
+
+    <div id="loading-overlay" hidden>
+      <div class="loading-spinner"></div>
+      <div id="loading-text">Đang tải...</div>
+    </div>
+
+    <div id="json-list-panel" class="panel">
+      <div class="panel-header json-list-header">
+        <span>Json List</span>
+        <button id="delete-json-btn" class="text-btn" title="Xóa toàn bộ Json List" disabled>Xóa hết</button>
+      </div>
+      <div id="json-list-wrap">
+        <div id="json-list" class="drop-zone" tabindex="0">
+          <div class="drop-hint">Kéo thả file .json hoặc cả folder vào đây</div>
+        </div>
+        <div id="json-marquee-box"></div>
+      </div>
+    </div>
+
+    <div id="preview-panel" class="panel">
+      <div class="preview-tabs">
+        <button class="tab-btn active" id="tab-btn-preview" data-tab="preview">Preview</button>
+        <button class="tab-btn" id="tab-btn-sequencer" data-tab="sequencer">Sequencer</button>
+      </div>
+
+      <div class="preview-toolbar" id="preview-toolbar-tab">
+        <div id="anim-list" class="anim-list"></div>
+      </div>
+      <div class="preview-toolbar" id="sequencer-toolbar-tab" hidden>
+        <div id="seq-anim-list" class="anim-list"></div>
+      </div>
+
+      <div id="preview-canvas-wrap" tabindex="0">
+        <div id="marquee-box"></div>
+        <div id="preview-empty-hint">Kéo skeleton từ Json List, hoặc thả thẳng file .json vào đây</div>
+        <div id="sequencer-empty-hint" hidden>Kéo json từ Json List vào khung nhìn hoặc xuống thanh timeline bên dưới — tự thêm anim đầu tiên</div>
+        <div id="zoom-flash" class="zoom-flash">100%</div>
+      </div>
+
+      <div id="scrub-bar-wrap">
+        <button id="scrub-play-btn" class="icon-btn" title="Play/Pause (Space)">▶</button>
+        <input type="range" id="scrub-bar" min="0" max="1000" value="0" step="1">
+        <span id="frame-counter">0 / 0</span>
+        <button id="scrub-unit-btn" class="icon-btn" title="Đổi hiển thị Frame/Giây">F</button>
+      </div>
+
+      <div id="sequencer-timeline-wrap" hidden>
+        <div id="seq-vresize" title="Kéo để đổi chiều cao thanh timeline"></div>
+        <div id="seq-ruler-row">
+          <div id="seq-ruler-spacer">
+            <button id="seq-play-btn" class="icon-btn" title="Play/Pause (Space)">▶</button>
+            <button id="seq-loop-btn" class="seq-loop-toggle active" title="Bật/tắt lặp lại (loop)"><span class="seq-loop-check">✓</span> Loop</button>
+            <button id="seq-loop-local-btn" class="seq-loop-toggle" title="Loop Locally: mỗi layer tự lặp lại hết danh sách anim của nó, không phụ thuộc độ dài timeline chung, giống mỗi layer là 1 prefab tự loop"><span class="seq-loop-check">✓</span> Loop Locally</button>
+          </div>
+          <div id="seq-ruler-scroll"><div id="seq-ruler">
+            <div id="seq-loop-region"></div>
+            <div id="seq-loop-start-marker" class="seq-loop-marker" title="Kéo để đổi điểm bắt đầu loop">▶</div>
+            <div id="seq-loop-end-marker" class="seq-loop-marker end" title="Kéo để đổi điểm kết thúc loop">◀</div>
+            <div id="seq-playhead-ruler-marker" class="seq-playhead-ruler-marker"></div>
+          </div></div>
+        </div>
+        <div id="seq-body">
+          <div id="seq-layers-list"></div>
+          <div id="seq-col-resizer" title="Kéo để đổi độ rộng cột tên layer"></div>
+          <div id="seq-tracks-scroll">
+            <div id="seq-tracks-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="properties-panel" class="panel">
+      <div class="panel-header">Properties</div>
+
+      <div class="prop-section card">
+        <div class="prop-title">Background</div>
+        <div class="prop-row">
+          <label>Màu</label>
+          <input type="color" id="bg-color" value="#4a4a4a">
+          <label class="checkbox-label"><input type="checkbox" id="bg-transparent"> Transparent</label>
+        </div>
+      </div>
+
+      <div class="prop-section card">
+        <div class="prop-title">Skin</div>
+        <div class="prop-row">
+          <select id="skin-select" disabled></select>
+        </div>
+      </div>
+
+      <div class="prop-section card">
+        <div class="prop-title">Scale</div>
+        <div class="prop-row scale-row">
+          <input type="range" id="scale-slider" min="10" max="400" value="100" disabled>
+          <input type="number" id="scale-number" min="10" max="400" placeholder="--" disabled>
+          <span class="unit">%</span>
+        </div>
+      </div>
+
+      <div class="prop-section card">
+        <div class="prop-title">Vị trí</div>
+        <button id="reset-center-btn" class="secondary-btn" title="Đưa toàn bộ symbol trên canvas về tọa độ 0,0">Reset to Center</button>
+      </div>
+
+      <div class="prop-section card" id="blend-section" hidden>
+        <div class="prop-title">Blend (giao nhau)</div>
+        <div class="prop-row">
+          <label id="blend-label" title="">Idle → Walk</label>
+        </div>
+        <div class="prop-row">
+          <label id="blend-frames-label">Số frame giao nhau</label>
+          <input type="number" id="blend-frames" min="0" step="1">
+          <button id="blend-unit-btn" class="icon-btn" title="Đổi hiển thị Frame/Giây">F</button>
+        </div>
+      </div>
+
+      <div class="prop-section card">
+        <div class="prop-title">Export Static</div>
+        <div class="prop-row">
+          <label>W</label><input type="number" id="export-w" value="200" min="1" disabled>
+          <label>H</label><input type="number" id="export-h" value="200" min="1" disabled>
+        </div>
+        <div class="prop-row">
+          <input type="text" id="output-path" placeholder="Chọn thư mục xuất..." readonly>
+          <button id="choose-output-btn">...</button>
+        </div>
+        <button id="export-btn" class="primary-btn" disabled>Export PNG</button>
+        <div id="export-status"></div>
+      </div>
+    </div>
+
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
