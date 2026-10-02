@@ -15,6 +15,14 @@
       "hash": "cb6428699f5831beddf4721cd4b357f3860092a262922385083944c2a4dac44a",
       "active": true,
       "created": "2026-10-02"
+    },
+    {
+      "id": "k_0d85c804",
+      "name": "Guest",
+      "note": "",
+      "hash": "9bccd56a0843d3c945aa5802016b21c2d9b1ee5c8ab3c90c2231e1f0c278a9df",
+      "active": true,
+      "created": "2026-10-02"
     }
   ]
 }
