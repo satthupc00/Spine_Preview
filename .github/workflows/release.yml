@@ -5,7 +5,7 @@ name: Release
 on:
   push:
     branches: [main]
-    paths: [package.json, .github/workflows/release.yml]
+    paths: [package.json, release-notes.md, .github/workflows/release.yml]
   workflow_dispatch:
 
 permissions:
@@ -42,7 +42,17 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npx electron-builder --win nsis --x64 --publish always
+      # Fails the build if release-notes.md isn't written for this version.
+      - run: node scripts/release-notes.js
+      # bash, not the default PowerShell, which mangles the -c.releaseInfo... argument
+      - run: npx electron-builder --win nsis --x64 --publish always -c.releaseInfo.releaseNotesFile=build/release-notes.md
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # Also put the notes on the GitHub release page; without a body the updater falls back to
+      # the commit message.
+      - run: gh release edit "v${{ needs.check.outputs.version }}" --notes-file build/release-notes.md
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

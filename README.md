@@ -25,6 +25,7 @@ Công cụ desktop (Windows) để xem trước và xuất animation từ **Spin
 | `license.js` / `license-ui.js` | Kiểm tra key, màn hình khóa, bảng Admin |
 | `updater.js` | Tự động cập nhật từ GitHub Releases |
 | `access/keys.json` | Danh sách key (chỉ lưu mã băm, không lộ key) – sửa qua bảng Admin |
+| `release-notes.md` | Nội dung bảng thông báo cập nhật của bản sắp phát hành |
 | `.github/workflows/release.yml` | Tự build file cài đặt và đăng bản mới khi đổi version |
 | `index.html` / `styles.css` | Giao diện |
 | `build/icon.ico` | Icon app |
@@ -51,7 +52,13 @@ File build nằm trong thư mục `dist/`.
 ## Phát hành bản mới (tự động cập nhật)
 
 1. Sửa code, đổi `"version"` trong `package.json` (ví dụ `2.2.2` → `2.2.3`).
-2. Push lên nhánh `main`.
+2. Ghi nội dung muốn hiện trong bảng thông báo cập nhật vào `release-notes.md`:
+   ```
+   # v2.2.3
+   - Thêm tính năng ...
+   ```
+   Tiêu đề phải trùng version, nếu không GitHub sẽ không build.
+3. Push lên nhánh `main`.
 
 GitHub Actions sẽ tự build `SpinePreview-<version>-setup.exe` và đăng lên mục **Releases** (khoảng 5–10 phút, xem ở tab **Actions**).
 App trên máy đồng nghiệp kiểm tra bản mới lúc mở app và mỗi 1 tiếng, tự tải về, rồi hỏi
@@ -74,7 +81,7 @@ App trên máy đồng nghiệp kiểm tra bản mới lúc mở app và mỗi 1
 
 ### Dùng bảng Admin
 
-- Mở app → bấm **Ctrl+Shift+M** (cả lúc đang ở màn hình khóa) → dán token → **Đăng nhập Admin**.
+- Mở bảng Admin bằng phím tắt riêng (chỉ Mondiro biết) → dán token → **Đăng nhập Admin**.
   Token được mã hóa và chỉ lưu trên máy bạn. Máy đã đăng nhập Admin thì luôn dùng được app.
 - **Tạo key mới**: nhập tên đồng nghiệp → **+ Tạo key mới**. Ở dòng của người đó bấm **Hiện** để xem key (dạng `SPV-XXXX-XXXX-XXXX-XXXX`) hoặc **Copy** để gửi cho họ.
 - Key chỉ lưu trên máy đã tạo ra nó (đăng xuất Admin không làm mất). Dòng nào báo "Key không lưu trên máy này" thì bấm **Đổi key** để tạo key mới cho người đó.
