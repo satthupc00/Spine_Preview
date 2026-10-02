@@ -43,7 +43,7 @@ jobs:
           node-version: 20
       - run: npm install
       - run: node scripts/write-release-notes.js
-      - run: npx electron-builder --win nsis --x64 --publish always
+      - run: npx electron-builder --win nsis --x64 --publish always -c.releaseInfo.releaseNotesFile=build/release-notes.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
