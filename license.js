@@ -155,6 +155,9 @@ async function gh(method, url, token, body) {
       'X-GitHub-Api-Version': '2022-11-28',
       'Content-Type': 'application/json'
     },
+    // Without this Chromium serves GitHub's cached copy (max-age=60) right after an edit, so the
+    // panel showed stale rows and the next edit failed on an outdated sha.
+    cache: 'no-store',
     body: body ? JSON.stringify(body) : undefined
   });
   const data = await res.json().catch(() => ({}));
@@ -180,12 +183,15 @@ async function adminLogin(token) {
   return true;
 }
 
+// Logging out forgets the token only; the keys created on this machine stay saved so they can
+// still be shown after logging in again.
 function adminLogout() {
-  try { fs.unlinkSync(adminFile()); } catch (e) { /* already gone */ }
+  const admin = readAdmin();
+  if (admin) writeAdmin({ plainKeys: admin.plainKeys || {} });
 }
 
 async function readRemoteList(token) {
-  const res = await gh('GET', `/repos/${OWNER}/${REPO}/contents/${KEYS_PATH}?ref=${BRANCH}`, token);
+  const res = await gh('GET', `/repos/${OWNER}/${REPO}/contents/${KEYS_PATH}?ref=${BRANCH}&t=${Date.now()}`, token);
   if (res.status === 404) return { data: { keys: [] }, sha: null };
   if (!res.ok) throw new Error(`Không đọc được danh sách key (HTTP ${res.status}).`);
   const data = JSON.parse(Buffer.from(res.data.content, 'base64').toString('utf-8'));
@@ -209,10 +215,22 @@ async function editRemoteList(token, message, mutate) {
   throw new Error('Danh sách vừa bị sửa ở nơi khác, hãy thử lại.');
 }
 
+function withPlainKeys(keys) {
+  const plainKeys = (readAdmin() || {}).plainKeys || {};
+  return keys.map(k => ({ ...k, key: plainKeys[k.id] || null }));
+}
+
+function rememberKey(id, key) {
+  const admin = readAdmin() || {};
+  const plainKeys = { ...(admin.plainKeys || {}) };
+  if (key) plainKeys[id] = key; else delete plainKeys[id];
+  writeAdmin({ ...admin, plainKeys });
+}
+
 async function adminList() {
   const admin = requireToken();
   const { data } = await readRemoteList(admin.token);
-  return data.keys.map(k => ({ ...k, key: (admin.plainKeys || {})[k.id] || null }));
+  return withPlainKeys(data.keys);
 }
 
 async function adminAdd(name, note) {
@@ -221,32 +239,47 @@ async function adminAdd(name, note) {
   if (!name) throw new Error('Hãy nhập tên người dùng.');
   const key = generateKey();
   const id = 'k_' + crypto.randomBytes(4).toString('hex');
-  await editRemoteList(admin.token, `Access: thêm key cho ${name}`, data => {
-    data.keys.push({
+  const data = await editRemoteList(admin.token, `Access: thêm key cho ${name}`, d => {
+    d.keys.push({
       id, name, note: String(note || '').trim(), hash: hashKey(key), active: true,
       created: new Date().toISOString().slice(0, 10)
     });
   });
-  writeAdmin({ ...admin, plainKeys: { ...(admin.plainKeys || {}), [id]: key } });
-  return { id, key };
+  rememberKey(id, key);
+  return { id, key, keys: withPlainKeys(data.keys) };
+}
+
+// Gives an existing person a fresh key (their old key stops working). Used when the old key
+// wasn't saved on this machine and can't be shown any more.
+async function adminRegenerate(id) {
+  const admin = requireToken();
+  const key = generateKey();
+  const data = await editRemoteList(admin.token, `Access: đổi key ${id}`, d => {
+    const k = d.keys.find(x => x.id === id);
+    if (!k) throw new Error('Không tìm thấy key này nữa.');
+    k.hash = hashKey(key);
+    k.active = true;
+  });
+  rememberKey(id, key);
+  return { key, keys: withPlainKeys(data.keys) };
 }
 
 async function adminSetActive(id, active) {
   const admin = requireToken();
-  await editRemoteList(admin.token, `Access: ${active ? 'mở lại' : 'thu hồi'} key ${id}`, data => {
-    const k = data.keys.find(x => x.id === id);
+  const data = await editRemoteList(admin.token, `Access: ${active ? 'mở lại' : 'thu hồi'} key ${id}`, d => {
+    const k = d.keys.find(x => x.id === id);
     if (k) k.active = !!active;
   });
+  return withPlainKeys(data.keys);
 }
 
 async function adminRemove(id) {
   const admin = requireToken();
-  await editRemoteList(admin.token, `Access: xóa key ${id}`, data => {
-    data.keys = data.keys.filter(x => x.id !== id);
+  const data = await editRemoteList(admin.token, `Access: xóa key ${id}`, d => {
+    d.keys = d.keys.filter(x => x.id !== id);
   });
-  const plainKeys = { ...(admin.plainKeys || {}) };
-  delete plainKeys[id];
-  writeAdmin({ ...admin, plainKeys });
+  rememberKey(id, null);
+  return withPlainKeys(data.keys);
 }
 
 // ---- wiring ----------------------------------------------------------------
@@ -268,6 +301,7 @@ function initLicense(getWindow) {
   handle('admin-add', (name, note) => adminAdd(name, note));
   handle('admin-set-active', (id, active) => adminSetActive(id, active));
   handle('admin-remove', id => adminRemove(id));
+  handle('admin-regenerate', id => adminRegenerate(id));
 
   setInterval(async () => {
     const status = await checkAccess();

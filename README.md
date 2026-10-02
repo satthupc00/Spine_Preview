@@ -1,6 +1,6 @@
 # Mondiro Spine Preview
 
-**Phiên bản:** 2.2.0 · **Tác giả:** Mondiro
+**Phiên bản:** 2.2.1 · **Tác giả:** Mondiro
 
 Công cụ desktop (Windows) để xem trước và xuất animation từ **Spine 3.7.94**. Kéo thả file `.json` export từ Spine vào app để xem animation, dựng Sequence nhiều layer, mix animation và kiểm tra timing theo frame hoặc giây.
 
@@ -76,9 +76,10 @@ App trên máy đồng nghiệp kiểm tra bản mới lúc mở app và mỗi 1
 
 ### Dùng bảng Admin
 
-- Mở app → bấm **Admin** (trên màn hình khóa, nút Admin góc phải trên, hoặc **Ctrl+Shift+M**) → dán token → **Đăng nhập Admin**.
+- Mở app → bấm **Ctrl+Shift+M** (cả lúc đang ở màn hình khóa) → dán token → **Đăng nhập Admin**.
   Token được mã hóa và chỉ lưu trên máy bạn. Máy đã đăng nhập Admin thì luôn dùng được app.
-- **Tạo key mới**: nhập tên đồng nghiệp → **+ Tạo key mới**. Key (dạng `SPV-XXXX-XXXX-XXXX-XXXX`) được copy sẵn, bạn gửi cho người đó.
+- **Tạo key mới**: nhập tên đồng nghiệp → **+ Tạo key mới**. Ở dòng của người đó bấm **Hiện** để xem key (dạng `SPV-XXXX-XXXX-XXXX-XXXX`) hoặc **Copy** để gửi cho họ.
+- Key chỉ lưu trên máy đã tạo ra nó (đăng xuất Admin không làm mất). Dòng nào báo "Key không lưu trên máy này" thì bấm **Đổi key** để tạo key mới cho người đó.
   Họ mở app, nhập key một lần là dùng được.
 - **Thu hồi**: khóa tạm, có thể **Mở lại** sau. **Xóa**: xóa hẳn, key đó không dùng lại được.
 - Sau khi thu hồi hoặc xóa, máy kia sẽ bị khóa trong khoảng **15–20 phút** (hoặc ngay lần mở app tiếp theo).

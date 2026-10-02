@@ -44,8 +44,7 @@
       el('div', { class: 'lock-brand' }, [el('span', { class: 'brand-red', text: 'Mondiro' }), el('span', { class: 'brand-white', text: ' Spine Preview' })]),
       el('div', { class: 'lock-sub', text: `Preview & export animation Spine 3.7.94 · v${version}` }),
       lockMsg,
-      keyForm,
-      el('button', { class: 'lock-admin-link', text: 'Admin', onclick: () => openAdmin() })
+      keyForm
     ]),
     el('div', { class: 'lock-credit', text: 'Created by Mondiro' })
   ]);
@@ -65,7 +64,6 @@
 
   async function check() {
     try { applyStatus(await call('license-check')); } catch (e) { applyStatus({ ok: false, reason: 'offline' }); }
-    refreshAdminButton();
   }
 
   async function doActivate() {
@@ -80,17 +78,12 @@
   retryBtn.addEventListener('click', check);
   ipcRenderer.on('license-status', (_e, status) => applyStatus(status));
 
-  // ---- top-right buttons: Admin + update pill ----
+  // ---- top-right: update pill next to Changes Log (Admin is reached with Ctrl+Shift+M only) ----
   const changelogBtn = document.getElementById('changelog-btn');
   const topBar = el('div', { id: 'top-right-bar' });
   changelogBtn.replaceWith(topBar);
-  const adminBtn = el('button', { id: 'admin-btn', class: 'top-pill', text: 'Admin', hidden: '', onclick: () => openAdmin() });
   const updatePill = el('button', { id: 'update-pill', class: 'top-pill', hidden: '' });
-  topBar.append(updatePill, adminBtn, changelogBtn);
-
-  async function refreshAdminButton() {
-    try { adminBtn.hidden = !(await call('admin-status')); } catch (e) { adminBtn.hidden = true; }
-  }
+  topBar.append(updatePill, changelogBtn);
 
   ipcRenderer.on('update-status', (_e, s) => {
     if (s.state === 'downloading') {
@@ -168,48 +161,87 @@
     setTimeout(() => tokenInput.focus(), 0);
   }
 
+  const maskKey = key => key.replace(/[A-Z0-9]{4}(?=-|$)/g, '••••');
+
   function keyRow(k) {
     const active = k.active !== false;
-    const copyBtn = k.key ? el('button', { class: 'text-btn', text: 'Copy key', onclick: () => { clipboard.writeText(k.key); setMsg(`Đã copy key của ${k.name}.`); } }) : null;
+    let keyLine;
+    if (k.key) {
+      let shown = false;
+      const keyText = el('code', { class: 'admin-key-text', text: maskKey(k.key) });
+      const eyeBtn = el('button', { class: 'text-btn', text: 'Hiện', title: 'Ẩn/hiện key' });
+      eyeBtn.addEventListener('click', () => {
+        shown = !shown;
+        keyText.textContent = shown ? k.key : maskKey(k.key);
+        eyeBtn.textContent = shown ? 'Ẩn' : 'Hiện';
+      });
+      keyLine = el('div', { class: 'admin-key-line' }, [
+        keyText,
+        eyeBtn,
+        el('button', { class: 'text-btn', text: 'Copy', onclick: () => { clipboard.writeText(k.key); setMsg(`Đã copy key của ${k.name}.`); } })
+      ]);
+    } else {
+      keyLine = el('div', { class: 'admin-key-line' }, [
+        el('span', { class: 'admin-key-missing', text: 'Key không lưu trên máy này' }),
+        el('button', {
+          class: 'text-btn', text: 'Đổi key', title: 'Tạo key mới cho người này, key cũ sẽ hết dùng được',
+          onclick: () => {
+            if (!confirm(`Tạo key mới cho "${k.name}"? Key cũ sẽ không dùng được nữa, bạn cần gửi key mới cho họ.`)) return;
+            busy(async () => {
+              const { key, keys } = await call('admin-regenerate', k.id);
+              clipboard.writeText(key);
+              showList(keys);
+            }, `Đã tạo key mới cho ${k.name} và copy sẵn, gửi cho họ nhé.`);
+          }
+        })
+      ]);
+    }
     return el('div', { class: 'admin-row' + (active ? '' : ' revoked') }, [
       el('div', { class: 'admin-row-info' }, [
-        el('div', { class: 'admin-row-name', text: k.name }),
-        el('div', { class: 'admin-row-meta', text: [k.created, k.note, active ? 'Đang dùng' : 'Đã thu hồi'].filter(Boolean).join(' · ') })
+        el('div', { class: 'admin-row-name' }, [
+          el('span', { text: k.name }),
+          el('span', { class: 'admin-badge' + (active ? '' : ' off'), text: active ? 'Đang dùng' : 'Đã thu hồi' })
+        ]),
+        el('div', { class: 'admin-row-meta', text: [k.created, k.note].filter(Boolean).join(' · ') }),
+        keyLine
       ]),
-      copyBtn,
       el('button', {
         class: 'text-btn', text: active ? 'Thu hồi' : 'Mở lại',
-        onclick: () => busy(async () => { await call('admin-set-active', k.id, !active); await renderList(); },
+        onclick: () => busy(async () => showList(await call('admin-set-active', k.id, !active)),
           active ? `Đã thu hồi key của ${k.name}. Máy đó sẽ bị khóa trong khoảng 15–20 phút.` : `Đã mở lại key của ${k.name}.`)
       }),
       el('button', {
         class: 'text-btn danger', text: 'Xóa',
         onclick: () => {
           if (!confirm(`Xóa hẳn key của "${k.name}"? Máy đó sẽ bị khóa và key không dùng lại được.`)) return;
-          busy(async () => { await call('admin-remove', k.id); await renderList(); }, `Đã xóa key của ${k.name}.`);
+          busy(async () => showList(await call('admin-remove', k.id)), `Đã xóa key của ${k.name}.`);
         }
       })
     ]);
   }
 
+  let listEl = null;
+  function showList(keys) {
+    if (!listEl) return;
+    listEl.replaceChildren(...(keys.length ? keys.map(keyRow) : [el('div', { class: 'admin-hint', text: 'Chưa có key nào.' })]));
+  }
+
   async function renderList() {
     const nameInput = el('input', { type: 'text', class: 'lock-input', placeholder: 'Tên đồng nghiệp' });
     const noteInput = el('input', { type: 'text', class: 'lock-input', placeholder: 'Ghi chú (không bắt buộc)' });
-    const newKeyBox = el('div', { class: 'admin-newkey', hidden: '' });
     const addBtn = el('button', { class: 'primary-btn', text: '+ Tạo key mới' });
-    addBtn.addEventListener('click', () => busy(async () => {
-      const name = nameInput.value;
-      const { key } = await call('admin-add', name, noteInput.value);
-      clipboard.writeText(key);
-      await renderList();
-      const box = adminBody.querySelector('.admin-newkey');
-      box.hidden = false;
-      box.replaceChildren(el('div', { text: `Key cho ${name.trim()} (đã copy sẵn, gửi cho họ):` }), el('code', { text: key }));
-    }));
-    const listEl = el('div', { class: 'admin-list' }, [el('div', { class: 'admin-hint', text: 'Đang tải danh sách...' })]);
+    addBtn.addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      busy(async () => {
+        const { keys } = await call('admin-add', name, noteInput.value);
+        nameInput.value = '';
+        noteInput.value = '';
+        showList(keys);
+      }, `Đã tạo key cho ${name}. Bấm "Hiện" hoặc "Copy" ở dòng của họ để lấy key.`);
+    });
+    listEl = el('div', { class: 'admin-list' }, [el('div', { class: 'admin-hint', text: 'Đang tải danh sách...' })]);
     adminBody.replaceChildren(
       el('div', { class: 'admin-add' }, [nameInput, noteInput, addBtn]),
-      newKeyBox,
       listEl,
       el('div', { class: 'admin-foot' }, [
         el('span', { class: 'admin-hint', text: 'Lưu ý: tên và ghi chú hiển thị công khai trên GitHub, key thì không.' }),
@@ -220,8 +252,7 @@
       ])
     );
     try {
-      const keys = await call('admin-list');
-      listEl.replaceChildren(...(keys.length ? keys.map(keyRow) : [el('div', { class: 'admin-hint', text: 'Chưa có key nào.' })]));
+      showList(await call('admin-list'));
     } catch (e) {
       listEl.replaceChildren(el('div', { class: 'admin-msg error', text: e.message }));
     }
