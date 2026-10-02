@@ -1,6 +1,6 @@
 {
   "name": "spine-preview",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Preview & export tool for Spine 3.7.94 animation exports",
   "main": "main.js",
   "scripts": {
@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "pixi.js": "^7.4.3",
-    "pixi-spine": "^4.0.6"
+    "pixi-spine": "^4.0.6",
+    "electron-updater": "^6.3.9"
   },
   "author": "Mondiro",
   "build": {
@@ -30,6 +31,9 @@
       "main.js",
       "renderer.js",
       "spine-stage.js",
+      "license.js",
+      "license-ui.js",
+      "updater.js",
       "index.html",
       "styles.css",
       "package.json",
@@ -40,7 +44,10 @@
       "!changelog.txt"
     ],
     "extraResources": [
-      { "from": "changelog.txt", "to": "changelog.txt" }
+      {
+        "from": "changelog.txt",
+        "to": "changelog.txt"
+      }
     ],
     "asar": true,
     "win": {
@@ -80,6 +87,14 @@
       "artifactName": "SpinePreview-${version}-portable.${ext}",
       "unicode": true
     },
-    "compression": "maximum"
+    "compression": "maximum",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "satthupc00",
+        "repo": "Spine_Preview",
+        "releaseType": "release"
+      }
+    ]
   }
 }

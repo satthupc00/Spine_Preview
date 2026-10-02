@@ -11,3 +11,4 @@
 2.0.2 | Fix bugs lỗi thỉnh thoảng kéo json vào không hiển thị (dành cho máy yếu)
 2.1.0 | Sequencer đã có thêm mixer anim, thêm nút Play/Stop trên thanh scrub, hiện thêm thời gian bằng giây
 2.1.1 | Update thêm tính năng Loop Locally (tương tự như prefap trong engine game), Thêm hiển thị số frame bằng giây
+2.2.0 | Tự động cập nhật khi có bản mới, thêm key kích hoạt và bảng Admin quản lý quyền sử dụng

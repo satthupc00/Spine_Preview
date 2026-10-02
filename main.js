@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog, protocol } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { initLicense, isLocked } = require('./license.js');
+const { initUpdater } = require('./updater.js');
 
 // ---------------------------------------------------------------------------
 // Changes Log — lives in changelog.txt (plain text, not in the code) so it can be edited by hand
@@ -51,6 +53,7 @@ function showChangelog() {
 // OS menu bar, so the renderer asks for it over IPC — see the 'show-changelog' handler below and
 // the #changelog-btn click listener in renderer.js.
 ipcMain.on('show-changelog', () => showChangelog());
+ipcMain.on('get-app-version', e => { e.returnValue = app.getVersion(); });
 
 // Without this, Windows groups the app under Electron's own identity and the taskbar hover
 // tooltip / grouping shows "Electron" instead of the app's real name — happens both in dev
@@ -174,6 +177,8 @@ function createWindow() {
 app.whenReady().then(() => {
   installAssetProtocol();
   createWindow();
+  initLicense(() => mainWindow);
+  initUpdater(() => mainWindow);
 });
 
 // F12 / Ctrl+Shift+I stay available in the packaged app so a user can copy console errors.
@@ -182,7 +187,8 @@ app.on('browser-window-created', (_e, win) => {
     if (input.type !== 'keyDown') return;
     const devtools = input.key === 'F12'
       || (input.control && input.shift && input.key.toLowerCase() === 'i');
-    if (devtools) {
+    // DevTools stay closed while the app is locked so the lock screen can't simply be deleted.
+    if (devtools && !isLocked()) {
       win.webContents.toggleDevTools();
       event.preventDefault();
     }
@@ -208,6 +214,7 @@ ipcMain.handle('choose-output-folder', async () => {
 
 // ---- IPC: export a PNG from a dataURL ----
 ipcMain.handle('export-png', async (event, { outputRoot, subFolder, fileName, dataUrl }) => {
+  if (isLocked()) return { ok: false, error: 'App chưa được kích hoạt.' };
   try {
     const dir = path.join(outputRoot, subFolder);
     fs.mkdirSync(dir, { recursive: true });
