@@ -163,8 +163,6 @@ const exportBtn = document.getElementById('export-btn');
 const exportStatusEl = document.getElementById('export-status');
 const scrubBarWrapEl = document.getElementById('scrub-bar-wrap');
 const deleteJsonBtn = document.getElementById('delete-json-btn');
-const changelogBtn = document.getElementById('changelog-btn');
-changelogBtn.addEventListener('click', () => ipcRenderer.send('show-changelog'));
 const jsonListWrapEl = document.getElementById('json-list-wrap');
 const jsonMarqueeBoxEl = document.getElementById('json-marquee-box');
 

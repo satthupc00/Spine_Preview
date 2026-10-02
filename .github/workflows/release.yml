@@ -42,10 +42,7 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: node scripts/write-release-notes.js
-      # bash, not the default PowerShell, which mangles the -c.releaseInfo... argument
-      - run: npx electron-builder --win nsis --x64 --publish always -c.releaseInfo.releaseNotesFile=build/release-notes.md
-        shell: bash
+      - run: npx electron-builder --win nsis --x64 --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

@@ -1,6 +1,6 @@
 # Mondiro Spine Preview
 
-**Phiên bản:** 2.2.1 · **Tác giả:** Mondiro
+**Phiên bản:** 2.2.2 · **Tác giả:** Mondiro
 
 Công cụ desktop (Windows) để xem trước và xuất animation từ **Spine 3.7.94**. Kéo thả file `.json` export từ Spine vào app để xem animation, dựng Sequence nhiều layer, mix animation và kiểm tra timing theo frame hoặc giây.
 
@@ -11,7 +11,7 @@ Công cụ desktop (Windows) để xem trước và xuất animation từ **Spin
 - **Loop / Loop Locally**: mỗi layer tự lặp danh sách anim của nó (giống prefab trong engine game)
 - Thanh scrub có nút Play/Stop, hiển thị thời gian theo **Frame** hoặc **Giây**
 - Quét chọn, reset khung nhìn
-- **Changes Log** đọc từ `changelog.txt` – sửa file này là thấy thay đổi, không cần build lại
+- Hiện chữ **(latest)** màu xanh sau số phiên bản khi đang dùng bản mới nhất
 - **Tự động cập nhật**: có bản mới là app trên máy đồng nghiệp tự tải và hỏi khởi động lại
 - **Key kích hoạt + bảng Admin**: cấp, thu hồi, xóa quyền dùng app của từng người
 
@@ -19,7 +19,7 @@ Công cụ desktop (Windows) để xem trước và xuất animation từ **Spin
 
 | File | Vai trò |
 |---|---|
-| `main.js` | Tiến trình chính Electron (cửa sổ, menu, đọc changelog) |
+| `main.js` | Tiến trình chính Electron (cửa sổ, xuất PNG) |
 | `renderer.js` | Giao diện & logic của app |
 | `spine-stage.js` | Phần hiển thị Spine bằng PixiJS + pixi-spine |
 | `license.js` / `license-ui.js` | Kiểm tra key, màn hình khóa, bảng Admin |
@@ -27,7 +27,6 @@ Công cụ desktop (Windows) để xem trước và xuất animation từ **Spin
 | `access/keys.json` | Danh sách key (chỉ lưu mã băm, không lộ key) – sửa qua bảng Admin |
 | `.github/workflows/release.yml` | Tự build file cài đặt và đăng bản mới khi đổi version |
 | `index.html` / `styles.css` | Giao diện |
-| `changelog.txt` | Nhật ký cập nhật (sửa tay được) |
 | `build/icon.ico` | Icon app |
 
 ## Cài đặt & chạy
@@ -51,9 +50,8 @@ File build nằm trong thư mục `dist/`.
 
 ## Phát hành bản mới (tự động cập nhật)
 
-1. Sửa code, đổi `"version"` trong `package.json` (ví dụ `2.2.0` → `2.2.1`).
-2. Thêm 1 dòng vào cuối `changelog.txt`: `2.2.1 | nội dung thay đổi` – dòng này sẽ hiện trong hộp thoại cập nhật.
-3. Push lên nhánh `main`.
+1. Sửa code, đổi `"version"` trong `package.json` (ví dụ `2.2.2` → `2.2.3`).
+2. Push lên nhánh `main`.
 
 GitHub Actions sẽ tự build `SpinePreview-<version>-setup.exe` và đăng lên mục **Releases** (khoảng 5–10 phút, xem ở tab **Actions**).
 App trên máy đồng nghiệp kiểm tra bản mới lúc mở app và mỗi 1 tiếng, tự tải về, rồi hỏi

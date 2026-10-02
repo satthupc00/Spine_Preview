@@ -99,23 +99,7 @@ html, body {
 }
 #app-brand .brand-red { color: #ff3b3b; }
 #app-brand .brand-white { color: #ffffff; }
-
-#changelog-btn {
-  position: fixed;
-  top: 8px;
-  right: 14px;
-  z-index: 999;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, .25);
-  color: #fff;
-  font-weight: 600;
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  cursor: pointer;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, .6);
-}
-#changelog-btn:hover { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .45); }
+#app-brand .brand-latest { color: #4cd07d; margin-left: 4px; }
 
 /* Shown while a dropped .json (+ atlas/png) is being parsed and its textures decoded — that work
    is synchronous enough on large files to freeze the UI for a moment, so this gives feedback that
@@ -712,7 +696,7 @@ input[type="range"] { accent-color: var(--accent); }
 
 #export-status { font-size: 11.5px; color: var(--text-dim); margin-top: 6px; min-height: 14px; }
 
-/* ---- Top-right bar: update pill + Admin + Changes Log ---- */
+/* ---- Top-right bar: update pill ---- */
 #top-right-bar {
   position: fixed;
   top: 8px;
@@ -721,7 +705,6 @@ input[type="range"] { accent-color: var(--accent); }
   display: flex;
   gap: 6px;
 }
-#top-right-bar #changelog-btn { position: static; }
 .top-pill {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, .25);

@@ -4,9 +4,32 @@
 // the user is asked to restart; if they choose "later" it installs on the next quit.
 // Only works for copies installed with the Setup .exe (NSIS), not the portable .exe.
 // ---------------------------------------------------------------------------
-const { app, ipcMain, dialog } = require('electron');
+const { app, ipcMain, dialog, net } = require('electron');
 
 const CHECK_EVERY_MS = 60 * 60 * 1000;
+const LATEST_YML = 'https://github.com/satthupc00/Spine_Preview/releases/latest/download/latest.yml';
+
+function compareVersions(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+  }
+  return 0;
+}
+
+// true = this copy is the newest release, false = a newer one exists, null = couldn't tell
+// (offline). Reads the same latest.yml the updater uses, so it also works when run with npm start.
+ipcMain.handle('check-latest', async () => {
+  try {
+    const res = await net.fetch(`${LATEST_YML}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return { result: null };
+    const m = (await res.text()).match(/^version:\s*['"]?([\d.]+)/m);
+    return { result: m ? compareVersions(app.getVersion(), m[1]) >= 0 : null };
+  } catch (e) {
+    return { result: null };
+  }
+});
 
 function notesToText(notes) {
   if (!notes) return '';

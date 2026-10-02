@@ -26,6 +26,18 @@
   if (brandWhite) brandWhite.textContent = ` Spine Preview v${version}`;
   document.title = `Spine Preview v${version}`;
 
+  // "(latest)" in green after the version while this copy is the newest release on GitHub.
+  const latestTag = el('span', { class: 'brand-latest', text: '(latest)', hidden: '' });
+  if (brandWhite) brandWhite.after(latestTag);
+  const refreshLatest = async () => {
+    try {
+      const latest = await call('check-latest');
+      if (latest !== null) latestTag.hidden = !latest;
+    } catch (e) { /* keep the previous state */ }
+  };
+  refreshLatest();
+  setInterval(refreshLatest, 60 * 60 * 1000);
+
   // ---- lock screen ----
   const REASONS = {
     nokey: 'Nhập key kích hoạt mà Mondiro gửi cho bạn để bắt đầu dùng app.',
@@ -78,14 +90,12 @@
   retryBtn.addEventListener('click', check);
   ipcRenderer.on('license-status', (_e, status) => applyStatus(status));
 
-  // ---- top-right: update pill next to Changes Log (Admin is reached with Ctrl+Shift+M only) ----
-  const changelogBtn = document.getElementById('changelog-btn');
-  const topBar = el('div', { id: 'top-right-bar' });
-  changelogBtn.replaceWith(topBar);
+  // ---- top-right: update pill (Admin is reached with Ctrl+Shift+M only) ----
   const updatePill = el('button', { id: 'update-pill', class: 'top-pill', hidden: '' });
-  topBar.append(updatePill, changelogBtn);
+  document.body.append(el('div', { id: 'top-right-bar' }, [updatePill]));
 
   ipcRenderer.on('update-status', (_e, s) => {
+    if (s.state !== 'error') latestTag.hidden = true;
     if (s.state === 'downloading') {
       if (s.version) updatePill.dataset.version = s.version;
       updatePill.hidden = false;

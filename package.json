@@ -1,6 +1,6 @@
 {
   "name": "spine-preview",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Preview & export tool for Spine 3.7.94 animation exports",
   "main": "main.js",
   "scripts": {
@@ -40,14 +40,7 @@
       "build/icon.ico",
       "!sample-assets/**",
       "!dist/**",
-      "!**/*.map",
-      "!changelog.txt"
-    ],
-    "extraResources": [
-      {
-        "from": "changelog.txt",
-        "to": "changelog.txt"
-      }
+      "!**/*.map"
     ],
     "asar": true,
     "win": {

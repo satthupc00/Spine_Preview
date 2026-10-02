@@ -4,55 +4,6 @@ const fs = require('fs');
 const { initLicense, isLocked } = require('./license.js');
 const { initUpdater } = require('./updater.js');
 
-// ---------------------------------------------------------------------------
-// Changes Log — lives in changelog.txt (plain text, not in the code) so it can be edited by hand
-// without touching any .js file. One entry per line: "version | ghi chú", oldest first (append new
-// entries at the end). Lines starting with # or blank lines are ignored (comments/spacing).
-// In a packaged build the file is copied next to the app (via package.json's extraResources) so it
-// stays editable after install too, instead of being locked inside app.asar.
-// ---------------------------------------------------------------------------
-function changelogFilePath() {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, 'changelog.txt')
-    : path.join(__dirname, 'changelog.txt');
-}
-
-function loadChangelog() {
-  let text;
-  try {
-    text = fs.readFileSync(changelogFilePath(), 'utf-8');
-  } catch (e) {
-    return [];
-  }
-  return text.split(/\r\n|\r|\n/)
-    .map(line => line.trim())
-    .filter(line => line && !line.startsWith('#'))
-    .map(line => {
-      const sep = line.indexOf('|');
-      if (sep === -1) return { version: '', notes: line };
-      return { version: line.slice(0, sep).trim(), notes: line.slice(sep + 1).trim() };
-    });
-}
-
-function showChangelog() {
-  const entries = loadChangelog();
-  const detail = entries.length
-    ? entries.map(c => c.version ? `v${c.version}: ${c.notes}` : c.notes).join('\n')
-    : `Không đọc được file changelog.txt (${changelogFilePath()})`;
-  dialog.showMessageBox(mainWindow, {
-    type: 'info',
-    title: 'Changes Log',
-    message: 'Spine Preview — Nhật ký cập nhật',
-    detail,
-    buttons: ['Đóng'],
-    noLink: true
-  });
-}
-
-// Changes Log now lives in the app's own GUI (top-right, next to the brand text) instead of the
-// OS menu bar, so the renderer asks for it over IPC — see the 'show-changelog' handler below and
-// the #changelog-btn click listener in renderer.js.
-ipcMain.on('show-changelog', () => showChangelog());
 ipcMain.on('get-app-version', e => { e.returnValue = app.getVersion(); });
 
 // Without this, Windows groups the app under Electron's own identity and the taskbar hover
