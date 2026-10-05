@@ -1,6 +1,6 @@
 # Mondiro Spine Preview
 
-**Phiên bản:** 2.2.2 · **Tác giả:** Mondiro
+**Phiên bản:** 2.2.3 · **Tác giả:** Mondiro
 
 Công cụ desktop (Windows) để xem trước và xuất animation từ **Spine 3.7.94**. Kéo thả file `.json` export từ Spine vào app để xem animation, dựng Sequence nhiều layer, mix animation và kiểm tra timing theo frame hoặc giây.
 

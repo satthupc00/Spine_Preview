@@ -1,6 +1,6 @@
 {
   "name": "spine-preview",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "Preview & export tool for Spine 3.7.94 animation exports",
   "main": "main.js",
   "scripts": {

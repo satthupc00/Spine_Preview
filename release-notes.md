@@ -4,5 +4,5 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
-# v2.2.2
-- Sửa lỗi hình đen khi dùng dùng Blending mode
+# v2.2.3
+- Sửa lỗi hình đen khi dùng Blending mode
