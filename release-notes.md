@@ -5,5 +5,4 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
 # v2.2.2
-- Bỏ nút Changes Log
-- Hiện chữ (latest) màu xanh khi đang dùng bản mới nhất
+- Sửa lỗi hình đen khi dùng dùng Blending mode

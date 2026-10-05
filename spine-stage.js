@@ -53,6 +53,8 @@ class SpineStage {
       autoStart: false // we drive rendering from renderer.js's own rAF loop
     });
 
+    this._fixLightBlendAlpha();
+
     const view = this.app.view;
     view.style.width = '100%';
     view.style.height = '100%';
@@ -182,8 +184,33 @@ class SpineStage {
     this.content.position.set(width / 2 + panX, height / 2 + panY);
   }
 
-  // Kept for API symmetry; background is CSS-driven now (see the Application options above).
-  setBackground() {}
+  // Additive / screen slots must only ADD colour, never coverage. PIXI's default ADD writes
+  // alpha too (ONE, ONE), so the black parts of a glow texture — which are meant to add nothing —
+  // turned the transparent canvas opaque black and hid the background behind it. Keep the
+  // destination alpha instead (ZERO, ONE); the colour maths stays exactly the same.
+  _fixLightBlendAlpha() {
+    const gl = this.app.renderer.gl;
+    const modes = this.app.renderer.state.blendModes;
+    const B = PIXI.BLEND_MODES;
+    modes[B.ADD] = [gl.ONE, gl.ONE, gl.ZERO, gl.ONE];
+    modes[B.ADD_NPM] = [gl.SRC_ALPHA, gl.ONE, gl.ZERO, gl.ONE];
+    modes[B.SCREEN] = [gl.ONE, gl.ONE_MINUS_SRC_COLOR, gl.ZERO, gl.ONE];
+    modes[B.SCREEN_NPM] = [gl.SRC_ALPHA, gl.ONE_MINUS_SRC_COLOR, gl.ZERO, gl.ONE];
+  }
+
+  // A solid background is cleared INTO the WebGL surface, not just painted by CSS underneath,
+  // so additive / screen / multiply slots blend against the real background colour exactly like
+  // in Spine. `null` = transparent (the CSS checkerboard shows through). PNG export renders into
+  // its own RenderTexture, which clears to transparent regardless of this.
+  setBackground(color) {
+    const bg = this.app.renderer.background;
+    if (color == null) {
+      bg.alpha = 0;
+    } else {
+      bg.color = color;
+      bg.alpha = 1;
+    }
+  }
 
   // Screen pixel -> world unit (y-up), the inverse of setView's transform.
   screenToWorld(px, py) {

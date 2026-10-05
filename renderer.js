@@ -922,6 +922,7 @@ function applyBackground() {
   // Solid colour is a plain CSS background behind the transparent WebGL canvas; the checkerboard
   // class supplies its own background-image, so clear the inline colour in that mode.
   canvasWrap.style.backgroundColor = transparent ? '' : bgColorEl.value;
+  stage.setBackground(transparent ? null : bgColorEl.value);
 }
 bgColorEl.addEventListener('input', applyBackground);
 bgTransparentEl.addEventListener('change', applyBackground);
@@ -2124,6 +2125,7 @@ function undo() {
 }
 
 
+let scrubDragging = false; // true while the Preview scrub bar is held, so playback doesn't fight the drag
 scrubBar.addEventListener('mousedown', () => {
   scrubDragging = true;
   const focused = getFocusedInstance();
