@@ -2,13 +2,22 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Spine Preview v2.1.1</title>
+<title>Mondiro Spine Preview</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="app">
+  <header class="top">
+    <div class="brand">
+      <img class="brand-icon" src="build/icon.png" alt="">
+      <div class="brand-text">
+        <div class="brand-name"><span class="m">Mondiro</span> <span class="a">Spine Preview</span><span class="brand-ver" id="app-version"></span></div>
+        <div class="brand-desc">Xem trước &amp; xuất animation Spine 3.7.94</div>
+      </div>
+    </div>
+    <div class="tools" id="top-tools"></div>
+  </header>
 
-    <div id="app-brand"><span class="brand-red">Mondiro</span><span class="brand-white"> Spine Preview v2.1.1</span></div>
+  <div id="app">
 
     <div id="loading-overlay" hidden>
       <div class="loading-spinner"></div>
@@ -141,7 +150,13 @@
     </div>
 
   </div>
+
+  <footer class="status">
+    <span class="status-hint"><kbd>Space</kbd> Play/Pause · <kbd>Ctrl</kbd>+<kbd>Z</kbd> Hoàn tác · <kbd>Lăn chuột</kbd> Zoom · <kbd>Delete</kbd> Xóa json đang chọn</span>
+    <span class="credit">Created by Mondiro</span>
+  </footer>
   <script src="renderer.js"></script>
   <script src="license-ui.js"></script>
+  <script src="ui-fx.js"></script>
 </body>
 </html>

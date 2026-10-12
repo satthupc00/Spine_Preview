@@ -34,10 +34,12 @@
       "license.js",
       "license-ui.js",
       "updater.js",
+      "ui-fx.js",
       "index.html",
       "styles.css",
       "package.json",
       "build/icon.ico",
+      "build/icon.png",
       "!sample-assets/**",
       "!dist/**",
       "!**/*.map"

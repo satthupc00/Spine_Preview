@@ -22,13 +22,12 @@
 
   // ---- version in brand + title ----
   const version = ipcRenderer.sendSync('get-app-version');
-  const brandWhite = document.querySelector('#app-brand .brand-white');
-  if (brandWhite) brandWhite.textContent = ` Spine Preview v${version}`;
-  document.title = `Spine Preview v${version}`;
+  const versionEl = document.getElementById('app-version');
+  if (versionEl) versionEl.textContent = `v${version}`;
 
   // "(latest)" in green after the version while this copy is the newest release on GitHub.
   const latestTag = el('span', { class: 'brand-latest', text: '(latest)', hidden: '' });
-  if (brandWhite) brandWhite.after(latestTag);
+  if (versionEl) versionEl.after(latestTag);
   const refreshLatest = async () => {
     try {
       const latest = await call('check-latest');
@@ -92,7 +91,7 @@
 
   // ---- top-right: update pill (Admin is reached with Ctrl+Shift+M only) ----
   const updatePill = el('button', { id: 'update-pill', class: 'top-pill', hidden: '' });
-  document.body.append(el('div', { id: 'top-right-bar' }, [updatePill]));
+  (document.getElementById('top-tools') || document.body).append(updatePill);
 
   ipcRenderer.on('update-status', (_e, s) => {
     if (s.state !== 'error') latestTag.hidden = true;

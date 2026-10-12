@@ -99,8 +99,8 @@ function createWindow() {
     y: state.y,
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
-    title: 'Spine Preview',
-    backgroundColor: '#12181f',
+    title: 'Mondiro Spine Preview',
+    backgroundColor: '#1F2126',
     // Changes Log lives in the app's own GUI now, not the OS menu bar, so the menu bar goes back
     // to auto-hiding behind Alt like before. F12 still opens DevTools (wired below) when something
     // needs diagnosing on someone else's machine.
