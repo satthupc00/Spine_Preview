@@ -682,8 +682,18 @@ canvasWrap.addEventListener('keydown', ev => {
   // '+' and '-' — accept the main row and the numpad, with or without Shift.
   if (ev.key === '+' || ev.key === '=' || ev.code === 'NumpadAdd') { ev.preventDefault(); moveSelectionLayer(+1); return; }
   if (ev.key === '-' || ev.key === '_' || ev.code === 'NumpadSubtract') { ev.preventDefault(); moveSelectionLayer(-1); return; }
-  if (ev.key === 'Home') { ev.preventDefault(); rewindSelectionToStart(); }
+  if (ev.key === 'Home' || isFirstFrameKey(ev)) { ev.preventDefault(); rewindSelectionToStart(); return; }
+  if (isLastFrameKey(ev)) { ev.preventDefault(); seekSelectionToEnd(); }
 });
+
+// Q = first frame (same as Home), E = last frame. Matched on the physical key so a Vietnamese
+// IME (Unikey/Telex) or Caps Lock doesn't change them; plain key only, no Ctrl/Alt.
+function isFirstFrameKey(ev) { return ev.code === 'KeyQ' && !ev.ctrlKey && !ev.altKey && !ev.metaKey; }
+function isLastFrameKey(ev) { return ev.code === 'KeyE' && !ev.ctrlKey && !ev.altKey && !ev.metaKey; }
+
+// A looping track wraps trackTime == duration back to frame 0, so park a hair before the end —
+// that is the last frame as far as anyone can see.
+const LAST_FRAME_EPS = 1e-4;
 
 // ---------------------------------------------------------------------------
 // Layer order: `instances` is back-to-front, index 0 painted first. + / - move the whole
@@ -722,6 +732,16 @@ function rewindSelectionToStart() {
   if (!targets.length) return;
   targets.forEach(inst => {
     SpineStage.seek(inst.spine, 0);
+    inst.playing = false;
+  });
+  updateScrubUI();
+}
+
+function seekSelectionToEnd() {
+  const targets = getSelectedInstances();
+  if (!targets.length) return;
+  targets.forEach(inst => {
+    SpineStage.seek(inst.spine, Math.max(0, SpineStage.animationDuration(inst.spine) - LAST_FRAME_EPS));
     inst.playing = false;
   });
   updateScrubUI();
@@ -2222,10 +2242,16 @@ window.addEventListener('keydown', ev => {
   }
 
   if (isTimelineTab()) {
-    if (ev.key === 'Home') {
+    if (ev.key === 'Home' || isFirstFrameKey(ev)) {
       ev.preventDefault();
       seqPlaying = false;
       seqPlayhead = 0; updateSeqPlayheadUI();
+      return;
+    }
+    if (isLastFrameKey(ev)) {
+      ev.preventDefault();
+      seqPlaying = false;
+      seqPlayhead = Math.max(0, seqTotalDuration() - LAST_FRAME_EPS); updateSeqPlayheadUI();
       return;
     }
     if ((ev.key === 'Delete' || ev.key === 'Backspace') && seqSelectedClip) {
@@ -2239,7 +2265,8 @@ window.addEventListener('keydown', ev => {
   // Mirror the canvas shortcuts at window level so they still fire when focus drifted off the
   // canvas (clicking a chip, finishing a marquee drag, etc.).
   if (ev.target === canvasWrap) return; // the canvas handler already dealt with it
-  if (ev.key === 'Home') { ev.preventDefault(); rewindSelectionToStart(); return; }
+  if (ev.key === 'Home' || isFirstFrameKey(ev)) { ev.preventDefault(); rewindSelectionToStart(); return; }
+  if (isLastFrameKey(ev)) { ev.preventDefault(); seekSelectionToEnd(); return; }
   if (ev.key === '+' || ev.key === '=' || ev.code === 'NumpadAdd') { ev.preventDefault(); moveSelectionLayer(+1); return; }
   if (ev.key === '-' || ev.key === '_' || ev.code === 'NumpadSubtract') { ev.preventDefault(); moveSelectionLayer(-1); }
 });
