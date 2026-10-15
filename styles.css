@@ -1139,3 +1139,30 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 .seq-snap-btn { width: 26px; height: 26px; padding: 0; justify-content: center; }
 .seq-snap-btn svg { flex: 0 0 auto; }
 .seq-snap-btn:not(:disabled):hover { color: #fff; }
+
+/* Sequencer: where a dragged anim chip will land (red = insert & push right, amber = blend) */
+.seq-drop-marker {
+  position: absolute;
+  top: 2px; bottom: 2px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--red);
+  border-radius: 2px;
+  box-shadow: 0 0 0 3px rgba(229, 56, 59, .25);
+  z-index: 6;
+  pointer-events: none;
+  transition: left .08s ease-out;
+}
+.seq-drop-marker span {
+  position: absolute;
+  top: -2px; left: 5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.seq-drop-marker.blend { background: var(--warn); box-shadow: 0 0 0 3px rgba(242, 184, 75, .25); }
+.seq-drop-marker.blend span { background: var(--warn); color: #1F2126; }

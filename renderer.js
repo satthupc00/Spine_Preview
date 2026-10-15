@@ -1174,14 +1174,67 @@ function seqSnapStart(clip, desiredStart) {
   return Math.max(0, best);
 }
 
-// Inserting a brand new clip (from an anim-chip drop): places it at the requested spot if free;
-// otherwise appends it right after the layer's last clip, so a drop never silently fails.
+// Where a dropped anim chip lands on a layer, decided from the cursor time `t`:
+//   - near a clip edge (a seam between two clips, or either end of a clip) or in empty space
+//     -> 'insert': it goes exactly there and every clip from that point on is pushed right just
+//        enough to make room (a seam pushes by the whole new clip, a gap only by what overlaps);
+//   - deep inside a clip's body -> 'blend': lands where dropped, on top of it, like before.
+const SEQ_INSERT_EDGE_PX = 14;
+function seqResolveChipDrop(layer, t) {
+  t = Math.max(0, t);
+  const edgeSec = SEQ_INSERT_EDGE_PX / seqPxPerSec;
+  let best = null;
+  layer.clips.forEach(c => {
+    [c.start, c.start + seqClipEffectiveDuration(c)].forEach(edge => {
+      const d = Math.abs(edge - t);
+      if (d <= edgeSec && (!best || d < best.d)) best = { d, edge };
+    });
+  });
+  if (best) return { mode: 'insert', start: best.edge };
+  const inside = layer.clips.some(c => t > c.start && t < c.start + seqClipEffectiveDuration(c));
+  return inside ? { mode: 'blend', start: t } : { mode: 'insert', start: t };
+}
+
+// Adds a brand new clip from an anim-chip drop. `desiredStart` null = append after the layer's
+// last clip (dropped on the layer header, where there's no time under the cursor).
 function seqInsertClip(layer, clip, desiredStart) {
-  // Dropping an anim chip onto an occupied spot IS the point (that's how you create a blend) — it
-  // always lands exactly where dropped.
-  clip.start = Math.max(0, desiredStart);
+  if (desiredStart == null) {
+    clip.start = layer.clips.reduce((end, c) => Math.max(end, c.start + seqClipEffectiveDuration(c)), 0);
+  } else {
+    const drop = seqResolveChipDrop(layer, desiredStart);
+    clip.start = drop.start;
+    if (drop.mode === 'insert') {
+      const EPS = 1e-6;
+      const after = layer.clips.filter(c => c.start >= drop.start - EPS);
+      if (after.length) {
+        const firstStart = Math.min(...after.map(c => c.start));
+        const shift = Math.max(0, drop.start + seqClipEffectiveDuration(clip) - firstStart);
+        after.forEach(c => { c.start += shift; });
+      }
+    }
+  }
   layer.clips.push(clip);
   layer.clips.sort((a, b) => a.start - b.start);
+}
+
+// Drop marker shown inside a track row while an anim chip hovers it: red bar = insert & push,
+// amber bar = blend on top of the clip underneath.
+function seqShowDropMarker(row, layer, clientX) {
+  let marker = row.querySelector('.seq-drop-marker');
+  if (!marker) {
+    marker = document.createElement('div');
+    marker.className = 'seq-drop-marker';
+    marker.innerHTML = '<span></span>';
+    row.appendChild(marker);
+  }
+  const drop = seqResolveChipDrop(layer, clientXToSeqTime(clientX));
+  marker.classList.toggle('blend', drop.mode === 'blend');
+  marker.style.left = (drop.start * seqPxPerSec) + 'px';
+  marker.firstChild.textContent = drop.mode === 'blend' ? 'Blend' : 'Chèn';
+}
+function seqHideDropMarker(row) {
+  const marker = row.querySelector('.seq-drop-marker');
+  if (marker) marker.remove();
 }
 
 function seqDeleteClip(layerId, clipId) {
@@ -1362,17 +1415,23 @@ function seqWireClipDropTarget(el, layer, useCursorTime) {
     ev.preventDefault();
     el.classList.remove('drag-reject');
     el.classList.add('drag-ok');
+    if (useCursorTime) seqShowDropMarker(el, layer, ev.clientX);
   });
-  el.addEventListener('dragleave', () => { el.classList.remove('drag-ok'); el.classList.remove('drag-reject'); });
+  el.addEventListener('dragleave', ev => {
+    if (ev.relatedTarget && el.contains(ev.relatedTarget)) return; // moving over a clip inside the row
+    el.classList.remove('drag-ok'); el.classList.remove('drag-reject');
+    seqHideDropMarker(el);
+  });
   el.addEventListener('drop', ev => {
     ev.preventDefault();
     el.classList.remove('drag-ok');
+    seqHideDropMarker(el);
     if (!seqDraggingAnim || seqDraggingAnim.key !== layer.key) { seqDraggingAnim = null; return; }
     const { animName, duration } = seqDraggingAnim;
     seqDraggingAnim = null;
     pushUndoSnapshot();
     const clip = { id: seqNextClipId++, animName, baseDuration: duration, loopCount: 1, start: 0 };
-    const desiredStart = useCursorTime ? clientXToSeqTime(ev.clientX) : 0;
+    const desiredStart = useCursorTime ? clientXToSeqTime(ev.clientX) : null;
     seqInsertClip(layer, clip, desiredStart);
     seqSelectClip(layer.id, clip.id);
   });

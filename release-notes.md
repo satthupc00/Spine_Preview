@@ -4,5 +4,5 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
-# v2.5.0
-- Thêm nút Xếp sát ở Sequencer: các anim tự dính vào mép cuối anim bên trái, xóa khoảng trống (Ctrl+Z để hoàn tác)
+# v2.5.1
+- Sequencer: thả anim vào chỗ nối giữa 2 anim sẽ chèn vào và tự đẩy các anim phía sau sang phải (thả vào giữa thân anim vẫn tạo blend như cũ)
