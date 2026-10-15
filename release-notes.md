@@ -4,5 +4,6 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
-# v2.3.0
-- Làm mới giao diện và icon
+# v2.4.0
+- Thêm phím tắt Q / E để xem frame đầu / frame cuối
+- Thêm Checklist kiểm tra anim (frame đầu = frame cuối)
