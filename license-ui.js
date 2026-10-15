@@ -22,10 +22,13 @@
 
   // ---- version in brand + title ----
   const version = ipcRenderer.sendSync('get-app-version');
+  // The version number itself isn't shown in the header any more — only "(latest)" when this copy
+  // is the newest release. It's still in the tooltip of the app name.
   const versionEl = document.getElementById('app-version');
-  if (versionEl) versionEl.textContent = `v${version}`;
+  const brandNameEl = document.querySelector('.brand-name');
+  if (brandNameEl) brandNameEl.title = `Mondiro Spine Preview v${version}`;
 
-  // "(latest)" in green after the version while this copy is the newest release on GitHub.
+  // "(latest)" in green after the app name while this copy is the newest release on GitHub.
   const latestTag = el('span', { class: 'brand-latest', text: '(latest)', hidden: '' });
   if (versionEl) versionEl.after(latestTag);
   const refreshLatest = async () => {
@@ -91,7 +94,34 @@
 
   // ---- top-right: update pill (Admin is reached with Ctrl+Shift+M only) ----
   const updatePill = el('button', { id: 'update-pill', class: 'top-pill', hidden: '' });
-  (document.getElementById('top-tools') || document.body).append(updatePill);
+  const checkBtn = el('button', { id: 'check-update-btn', class: 'top-pill', title: `Kiểm tra bản mới trên GitHub (đang dùng v${version})` });
+  checkBtn.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Kiểm tra cập nhật</span>';
+  (document.getElementById('top-tools') || document.body).append(updatePill, checkBtn);
+
+  const checkLabel = checkBtn.querySelector('span');
+  let checkResetTimer = null;
+  const setCheckState = (cls, text, resetAfterMs) => {
+    clearTimeout(checkResetTimer);
+    checkBtn.classList.remove('checking', 'ok', 'news', 'fail');
+    if (cls) checkBtn.classList.add(cls);
+    checkLabel.textContent = text;
+    if (resetAfterMs) checkResetTimer = setTimeout(() => setCheckState(null, 'Kiểm tra cập nhật'), resetAfterMs);
+  };
+  checkBtn.addEventListener('click', async () => {
+    if (checkBtn.classList.contains('checking')) return;
+    setCheckState('checking', 'Đang kiểm tra…');
+    let r;
+    try { r = await call('update-check-now'); } catch (e) { r = { state: 'error' }; }
+    if (r.state === 'latest') {
+      latestTag.hidden = false;
+      setCheckState('ok', 'Đang dùng bản mới nhất', 3000);
+    } else if (r.state === 'available') {
+      latestTag.hidden = true;
+      setCheckState('news', `Có bản v${r.version}, đang tải…`, 4000);
+    } else {
+      setCheckState('fail', 'Không kiểm tra được, thử lại sau', 3500);
+    }
+  });
 
   ipcRenderer.on('update-status', (_e, s) => {
     if (s.state !== 'error') latestTag.hidden = true;

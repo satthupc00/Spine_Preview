@@ -68,7 +68,7 @@ body { display: flex; flex-direction: column; }
 .brand-name .m { color: var(--red); }
 .brand-name .a { color: #fff; }
 .brand-ver { margin-left: 8px; font-size: 11.5px; font-weight: 600; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-.brand-latest { margin-left: 4px; font-size: 11.5px; font-weight: 600; color: #4CD07D; }
+.brand-latest { margin-left: 8px; font-size: 11.5px; font-weight: 600; color: #4CD07D; }
 .brand-desc { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
 .tools { display: flex; gap: 8px; margin-left: auto; }
 
@@ -1166,3 +1166,18 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 }
 .seq-drop-marker.blend { background: var(--warn); box-shadow: 0 0 0 3px rgba(242, 184, 75, .25); }
 .seq-drop-marker.blend span { background: var(--warn); color: #1F2126; }
+
+/* Header "Kiểm tra cập nhật" button */
+#check-update-btn { display: inline-flex; align-items: center; gap: 6px; }
+#check-update-btn svg { flex: 0 0 auto; transition: transform .4s var(--ease-out); }
+#check-update-btn:not(:disabled):hover svg { transform: rotate(-90deg); }
+#check-update-btn.checking { color: var(--text-dim); cursor: progress; }
+#check-update-btn.checking svg { animation: fx-spin .8s linear infinite; }
+#check-update-btn.ok { border-color: #2E9E5B; color: #7FD6A0; }
+#check-update-btn.news { border-color: var(--red); color: #fff; }
+#check-update-btn.fail { border-color: var(--warn); color: var(--warn); }
+@keyframes fx-spin { to { transform: rotate(360deg); } }
+
+/* a newly dropped clip pops into place while its neighbours slide out of the way */
+.seq-clip-pop { animation: seq-clip-pop .34s var(--ease-spring) both; }
+@keyframes seq-clip-pop { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }

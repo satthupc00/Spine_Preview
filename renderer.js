@@ -1180,6 +1180,34 @@ function seqSnapStart(clip, desiredStart) {
 //        enough to make room (a seam pushes by the whole new clip, a gap only by what overlaps);
 //   - deep inside a clip's body -> 'blend': lands where dropped, on top of it, like before.
 const SEQ_INSERT_EDGE_PX = 14;
+
+// Clip motion after a timeline edit: record every clip's left edge before the edit, re-render,
+// then slide each moved clip from its old spot to the new one (FLIP). A clip that didn't exist
+// before (`newClipId`) pops in instead.
+function seqCaptureClipLefts() {
+  const lefts = {};
+  seqTracksListEl.querySelectorAll('.seq-clip[data-clip-id]').forEach(el => { lefts[el.dataset.clipId] = el.offsetLeft; });
+  return lefts;
+}
+function seqAnimateClipsFrom(oldLefts, newClipId) {
+  seqTracksListEl.querySelectorAll('.seq-clip[data-clip-id]').forEach(el => {
+    const id = el.dataset.clipId;
+    if (newClipId != null && String(newClipId) === id) {
+      el.classList.add('seq-clip-pop');
+      el.addEventListener('animationend', () => el.classList.remove('seq-clip-pop'), { once: true });
+      return;
+    }
+    const dx = oldLefts[id] != null ? oldLefts[id] - el.offsetLeft : 0;
+    if (!dx) return;
+    el.style.transition = 'none';
+    el.style.transform = `translateX(${dx}px)`;
+    requestAnimationFrame(() => {
+      el.style.transition = 'transform .32s cubic-bezier(.22, 1, .36, 1)';
+      el.style.transform = 'translateX(0)';
+      el.addEventListener('transitionend', () => { el.style.transition = ''; el.style.transform = ''; }, { once: true });
+    });
+  });
+}
 function seqResolveChipDrop(layer, t) {
   t = Math.max(0, t);
   const edgeSec = SEQ_INSERT_EDGE_PX / seqPxPerSec;
@@ -1432,8 +1460,10 @@ function seqWireClipDropTarget(el, layer, useCursorTime) {
     pushUndoSnapshot();
     const clip = { id: seqNextClipId++, animName, baseDuration: duration, loopCount: 1, start: 0 };
     const desiredStart = useCursorTime ? clientXToSeqTime(ev.clientX) : null;
+    const oldLefts = seqCaptureClipLefts();
     seqInsertClip(layer, clip, desiredStart);
     seqSelectClip(layer.id, clip.id);
+    seqAnimateClipsFrom(oldLefts, clip.id);
   });
 }
 
@@ -1749,22 +1779,12 @@ function seqSnapClipsToLeft() {
   });
   if (!moves.length) return;
 
-  // Slide the clips to their new spots instead of jumping (FLIP: old left -> new left).
-  const oldLeft = {};
-  seqTracksListEl.querySelectorAll('.seq-clip[data-clip-id]').forEach(el => { oldLeft[el.dataset.clipId] = el.offsetLeft; });
+  // Slide the clips to their new spots instead of jumping.
+  const oldLefts = seqCaptureClipLefts();
   pushUndoSnapshot();
   moves.forEach(m => { m.clip.start = m.start; });
   renderSeqTimeline();
-  moves.forEach(m => {
-    const el = seqTracksListEl.querySelector(`.seq-clip[data-clip-id="${m.clip.id}"]`);
-    if (!el || oldLeft[m.clip.id] == null) return;
-    el.style.transform = `translateX(${oldLeft[m.clip.id] - el.offsetLeft}px)`;
-    requestAnimationFrame(() => {
-      el.style.transition = 'transform .28s cubic-bezier(.22, 1, .36, 1)';
-      el.style.transform = 'translateX(0)';
-      el.addEventListener('transitionend', () => { el.style.transition = ''; el.style.transform = ''; }, { once: true });
-    });
-  });
+  seqAnimateClipsFrom(oldLefts);
 }
 document.getElementById('seq-snap-btn').addEventListener('click', seqSnapClipsToLeft);
 

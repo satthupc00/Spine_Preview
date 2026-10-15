@@ -18,16 +18,42 @@ function compareVersions(a, b) {
   return 0;
 }
 
+// Newest released version according to latest.yml, or null when it can't be read (offline).
+async function fetchLatestVersion() {
+  try {
+    const res = await net.fetch(`${LATEST_YML}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const m = (await res.text()).match(/^version:\s*['"]?([\d.]+)/m);
+    return m ? m[1] : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // true = this copy is the newest release, false = a newer one exists, null = couldn't tell
 // (offline). Reads the same latest.yml the updater uses, so it also works when run with npm start.
 ipcMain.handle('check-latest', async () => {
+  const latest = await fetchLatestVersion();
+  return { result: latest ? compareVersions(app.getVersion(), latest) >= 0 : null };
+});
+
+// "Kiểm tra cập nhật" button. Installed copies ask electron-updater (which then downloads the
+// new version and drives the usual update-status / restart flow); `npm start` only compares.
+// Result: { state: 'latest' | 'available' | 'error', version? }
+let autoUpdaterRef = null;
+ipcMain.handle('update-check-now', async () => {
   try {
-    const res = await net.fetch(`${LATEST_YML}?t=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) return { result: null };
-    const m = (await res.text()).match(/^version:\s*['"]?([\d.]+)/m);
-    return { result: m ? compareVersions(app.getVersion(), m[1]) >= 0 : null };
+    if (autoUpdaterRef) {
+      const r = await autoUpdaterRef.checkForUpdates();
+      const v = r && r.updateInfo && r.updateInfo.version;
+      if (!v) return { result: { state: 'error' } };
+      return { result: compareVersions(v, app.getVersion()) > 0 ? { state: 'available', version: v } : { state: 'latest', version: v } };
+    }
+    const v = await fetchLatestVersion();
+    if (!v) return { result: { state: 'error' } };
+    return { result: compareVersions(v, app.getVersion()) > 0 ? { state: 'available', version: v } : { state: 'latest', version: v } };
   } catch (e) {
-    return { result: null };
+    return { result: { state: 'error', message: e.message } };
   }
 });
 
@@ -40,6 +66,7 @@ function notesToText(notes) {
 function initUpdater(getWindow) {
   if (!app.isPackaged) return;
   const { autoUpdater } = require('electron-updater');
+  autoUpdaterRef = autoUpdater;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
