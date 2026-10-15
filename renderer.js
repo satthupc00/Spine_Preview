@@ -780,6 +780,7 @@ function renderAnimList() {
     animListEl.appendChild(label);
 
     const current = SpineStage.currentAnimation(inst.spine);
+    const chipsByName = {};
     SpineStage.animationNames(inst.spine).forEach(name => {
       const chip = document.createElement('div');
       chip.className = 'anim-chip' + (current === name ? ' active' : '');
@@ -790,10 +791,15 @@ function renderAnimList() {
         renderAnimList();
       });
       animListEl.appendChild(chip);
+      chipsByName[name] = chip;
     });
+    Checklist.decorate(inst, chipsByName);
+  } else {
+    Checklist.decorate(null, {});
   }
   updateToolbarHeight();
 }
+Checklist.onChange = () => renderAnimList();
 
 // The toolbar is absolutely positioned over the preview, so it sizes itself to however many rows
 // the chips wrap onto and the canvas below never moves. Nothing left to compute here.
@@ -837,6 +843,7 @@ skinSelectEl.addEventListener('change', () => {
   if (!inst) return;
   pushUndoSnapshot();
   SpineStage.setSkin(inst.spine, skinSelectEl.value);
+  renderAnimList(); // checklist results depend on the skin's attachments
 });
 
 // ---------------------------------------------------------------------------

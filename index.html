@@ -92,6 +92,27 @@
     <div id="properties-panel" class="panel">
       <div class="panel-header">Properties</div>
 
+      <div class="prop-section card" id="qa-card">
+        <div class="prop-title qa-title">
+          <span>Checklist</span>
+          <button class="qa-switch" id="qa-switch" role="switch" aria-checked="false" title="Bật/tắt checklist: chấm xanh/đỏ trên từng anim ở tab Preview"></button>
+        </div>
+        <div class="qa-sub">Chấm <span class="qa-green">xanh</span> = đạt hết, <span class="qa-red">đỏ</span> = có mục chưa đạt.</div>
+        <div class="qa-check">
+          <input type="checkbox" id="qa-framematch">
+          <div class="qa-check-body">
+            <label for="qa-framematch">Frame đầu = frame cuối</label>
+            <small>Pose frame đầu và frame cuối trùng tuyệt đối</small>
+            <input type="text" id="qa-framematch-filter" class="qa-filter" placeholder="Chỉ kiểm anim có chứa… (vd: idle)" spellcheck="false">
+          </div>
+        </div>
+        <div class="qa-results">
+          <div class="qa-results-head"><span id="qa-owner"></span><b id="qa-count"></b></div>
+          <div id="qa-rows"></div>
+          <div class="qa-note" id="qa-note"></div>
+        </div>
+      </div>
+
       <div class="prop-section card">
         <div class="prop-title">Background</div>
         <div class="prop-row">
@@ -155,6 +176,7 @@
     <span class="status-hint"><kbd>Space</kbd> Play/Pause · <kbd>Q</kbd>/<kbd>Home</kbd> Frame đầu · <kbd>E</kbd> Frame cuối · <kbd>Ctrl</kbd>+<kbd>Z</kbd> Hoàn tác · <kbd>Lăn chuột</kbd> Zoom · <kbd>Delete</kbd> Xóa json đang chọn</span>
     <span class="credit">Created by Mondiro</span>
   </footer>
+  <script src="checklist.js"></script>
   <script src="renderer.js"></script>
   <script src="license-ui.js"></script>
   <script src="ui-fx.js"></script>
