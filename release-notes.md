@@ -4,5 +4,7 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
-# v2.5.1
-- Sequencer: thả anim vào chỗ nối giữa 2 anim sẽ chèn vào và tự đẩy các anim phía sau sang phải (thả vào giữa thân anim vẫn tạo blend như cũ)
+# v2.6.0
+- Thêm animation đẩy anim sang phải khi chèn ở Sequencer
+- Thêm nút Kiểm tra cập nhật
+- Header chỉ hiện (latest), không hiện số version
