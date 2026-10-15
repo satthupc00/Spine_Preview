@@ -1012,7 +1012,7 @@ let seqLoopEnd = null; // null = tracks total duration live
 // OWN clip-list length, so it keeps looping its own short sequence continuously regardless of how
 // long other layers (or the global loop region) are.
 let seqLoopLocally = false;
-let seqLayerColWidth = 230; // px, user-resizable via #seq-col-resizer (wide enough for the play/Loop/Loop Locally buttons)
+let seqLayerColWidth = 275; // px, user-resizable via #seq-col-resizer (wide enough for the play/Loop/Loop Locally/Xếp sát buttons)
 
 let seqDraggingClip = null;      // { layer, clip, startClientX, origStart }
 let seqResizingClip = null;      // { layer, clip, startClientX, origLoopCount }
@@ -1672,6 +1672,42 @@ seqLoopLocalBtn.addEventListener('click', () => {
   seqLoopLocally = !seqLoopLocally;
   updateSeqLoopLocalButton();
 });
+
+// "Xếp sát": on each affected layer, walk the clips left to right and pull every clip that sits
+// after a gap back so it starts exactly where the clip on its left ends. The first clip stays
+// put, and clips that already overlap their left neighbour (a blend region) are left alone.
+// Only the selected layer when one is selected, otherwise every layer. Undoable.
+function seqSnapClipsToLeft() {
+  const layers = seqSelectedLayerId != null ? seqLayers.filter(l => l.id === seqSelectedLayerId) : seqLayers;
+  const moves = [];
+  layers.forEach(layer => {
+    let prevEnd = null;
+    [...layer.clips].sort((a, b) => a.start - b.start).forEach(clip => {
+      let start = clip.start;
+      if (prevEnd != null && start > prevEnd) { moves.push({ clip, start: prevEnd }); start = prevEnd; }
+      prevEnd = Math.max(prevEnd == null ? -Infinity : prevEnd, start + seqClipEffectiveDuration(clip));
+    });
+  });
+  if (!moves.length) return;
+
+  // Slide the clips to their new spots instead of jumping (FLIP: old left -> new left).
+  const oldLeft = {};
+  seqTracksListEl.querySelectorAll('.seq-clip[data-clip-id]').forEach(el => { oldLeft[el.dataset.clipId] = el.offsetLeft; });
+  pushUndoSnapshot();
+  moves.forEach(m => { m.clip.start = m.start; });
+  renderSeqTimeline();
+  moves.forEach(m => {
+    const el = seqTracksListEl.querySelector(`.seq-clip[data-clip-id="${m.clip.id}"]`);
+    if (!el || oldLeft[m.clip.id] == null) return;
+    el.style.transform = `translateX(${oldLeft[m.clip.id] - el.offsetLeft}px)`;
+    requestAnimationFrame(() => {
+      el.style.transition = 'transform .28s cubic-bezier(.22, 1, .36, 1)';
+      el.style.transform = 'translateX(0)';
+      el.addEventListener('transitionend', () => { el.style.transition = ''; el.style.transform = ''; }, { once: true });
+    });
+  });
+}
+document.getElementById('seq-snap-btn').addEventListener('click', seqSnapClipsToLeft);
 
 // ---- zoom % badge (floats over the canvas, both tabs) --------------------------------------
 let zoomFlashTimer = null;

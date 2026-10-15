@@ -4,6 +4,5 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
-# v2.4.0
-- Thêm phím tắt Q / E để xem frame đầu / frame cuối
-- Thêm Checklist kiểm tra anim (frame đầu = frame cuối)
+# v2.5.0
+- Thêm nút Xếp sát ở Sequencer: các anim tự dính vào mép cuối anim bên trái, xóa khoảng trống (Ctrl+Z để hoàn tác)

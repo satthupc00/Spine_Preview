@@ -1134,3 +1134,8 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 .qa-row .r { color: var(--text-dim); font-size: 11px; }
 .qa-note { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 .qa-note:empty { display: none; }
+
+/* Sequencer "Xếp sát" button: an action, not a toggle */
+.seq-snap-btn { width: 26px; height: 26px; padding: 0; justify-content: center; }
+.seq-snap-btn svg { flex: 0 0 auto; }
+.seq-snap-btn:not(:disabled):hover { color: #fff; }
