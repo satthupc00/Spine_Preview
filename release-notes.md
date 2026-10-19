@@ -4,7 +4,7 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
-# v2.6.0
-- Thêm animation đẩy anim sang phải khi chèn ở Sequencer
-- Thêm nút Kiểm tra cập nhật
-- Header chỉ hiện (latest), không hiện số version
+# v2.7.0
+- Logo mới
+- Bảng cập nhật mới ngay trong app
+- Ẩn thanh tiêu đề Windows, header kéo được cửa sổ

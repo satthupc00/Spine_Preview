@@ -20,25 +20,8 @@
     return node;
   };
 
-  // ---- version in brand + title ----
   const version = ipcRenderer.sendSync('get-app-version');
-  // The version number itself isn't shown in the header any more — only "(latest)" when this copy
-  // is the newest release. It's still in the tooltip of the app name.
-  const versionEl = document.getElementById('app-version');
-  const brandNameEl = document.querySelector('.brand-name');
-  if (brandNameEl) brandNameEl.title = `Mondiro Spine Preview v${version}`;
-
-  // "(latest)" in green after the app name while this copy is the newest release on GitHub.
-  const latestTag = el('span', { class: 'brand-latest', text: '(latest)', hidden: '' });
-  if (versionEl) versionEl.after(latestTag);
-  const refreshLatest = async () => {
-    try {
-      const latest = await call('check-latest');
-      if (latest !== null) latestTag.hidden = !latest;
-    } catch (e) { /* keep the previous state */ }
-  };
-  refreshLatest();
-  setInterval(refreshLatest, 60 * 60 * 1000);
+  // Header version / "latest" badge / update button live in ui-shell.js.
 
   // ---- lock screen ----
   const REASONS = {
@@ -55,12 +38,13 @@
   const keyForm = el('div', { class: 'lock-form', hidden: '' }, [keyInput, activateBtn, retryBtn]);
   const lockOverlay = el('div', { id: 'lock-overlay' }, [
     el('div', { class: 'lock-card' }, [
+      el('img', { class: 'lock-logo', src: 'build/icon.png', alt: '' }),
       el('div', { class: 'lock-brand' }, [el('span', { class: 'brand-red', text: 'Mondiro' }), el('span', { class: 'brand-white', text: ' Spine Preview' })]),
-      el('div', { class: 'lock-sub', text: `Preview & export animation Spine 3.7.94 · v${version}` }),
       lockMsg,
       keyForm
     ]),
-    el('div', { class: 'lock-credit', text: 'Created by Mondiro' })
+    el('div', { class: 'lock-credit', text: 'Created by Mondiro' }),
+    el('div', { class: 'win-drag' }) // the Windows title bar is hidden: keep the window draggable here
   ]);
   document.body.append(lockOverlay);
 
@@ -91,57 +75,6 @@
   keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') doActivate(); e.stopPropagation(); });
   retryBtn.addEventListener('click', check);
   ipcRenderer.on('license-status', (_e, status) => applyStatus(status));
-
-  // ---- top-right: update pill (Admin is reached with Ctrl+Shift+M only) ----
-  const updatePill = el('button', { id: 'update-pill', class: 'top-pill', hidden: '' });
-  const checkBtn = el('button', { id: 'check-update-btn', class: 'top-pill', title: `Kiểm tra bản mới trên GitHub (đang dùng v${version})` });
-  checkBtn.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Kiểm tra cập nhật</span>';
-  (document.getElementById('top-tools') || document.body).append(updatePill, checkBtn);
-
-  const checkLabel = checkBtn.querySelector('span');
-  let checkResetTimer = null;
-  const setCheckState = (cls, text, resetAfterMs) => {
-    clearTimeout(checkResetTimer);
-    checkBtn.classList.remove('checking', 'ok', 'news', 'fail');
-    if (cls) checkBtn.classList.add(cls);
-    checkLabel.textContent = text;
-    if (resetAfterMs) checkResetTimer = setTimeout(() => setCheckState(null, 'Kiểm tra cập nhật'), resetAfterMs);
-  };
-  checkBtn.addEventListener('click', async () => {
-    if (checkBtn.classList.contains('checking')) return;
-    setCheckState('checking', 'Đang kiểm tra…');
-    let r;
-    try { r = await call('update-check-now'); } catch (e) { r = { state: 'error' }; }
-    if (r.state === 'latest') {
-      latestTag.hidden = false;
-      setCheckState('ok', 'Đang dùng bản mới nhất', 3000);
-    } else if (r.state === 'available') {
-      latestTag.hidden = true;
-      setCheckState('news', `Có bản v${r.version}, đang tải…`, 4000);
-    } else {
-      setCheckState('fail', 'Không kiểm tra được, thử lại sau', 3500);
-    }
-  });
-
-  ipcRenderer.on('update-status', (_e, s) => {
-    if (s.state !== 'error') latestTag.hidden = true;
-    if (s.state === 'downloading') {
-      if (s.version) updatePill.dataset.version = s.version;
-      updatePill.hidden = false;
-      updatePill.disabled = true;
-      updatePill.classList.remove('ready');
-      updatePill.textContent = `Đang tải v${updatePill.dataset.version || ''}… ${s.percent || 0}%`;
-    } else if (s.state === 'ready') {
-      updatePill.hidden = false;
-      updatePill.disabled = false;
-      updatePill.classList.add('ready');
-      updatePill.textContent = `Cập nhật v${s.version} ↻`;
-      updatePill.title = 'Khởi động lại app để cài bản mới';
-    } else if (s.state === 'error' && !updatePill.classList.contains('ready')) {
-      updatePill.hidden = true;
-    }
-  });
-  updatePill.addEventListener('click', () => ipcRenderer.send('update-install'));
 
   // ---- Admin panel ----
   const adminBody = el('div', { class: 'admin-body' });
@@ -225,12 +158,11 @@
         el('button', {
           class: 'text-btn', text: 'Đổi key', title: 'Tạo key mới cho người này, key cũ sẽ hết dùng được',
           onclick: () => {
-            if (!confirm(`Tạo key mới cho "${k.name}"? Key cũ sẽ không dùng được nữa, bạn cần gửi key mới cho họ.`)) return;
-            busy(async () => {
+            MondiroUI.confirm({ title: `Tạo key mới cho "${k.name}"?`, message: 'Key cũ sẽ không dùng được nữa, bạn cần gửi key mới cho họ.', okText: 'Tạo key mới' }).then(ok => ok && busy(async () => {
               const { key, keys } = await call('admin-regenerate', k.id);
               clipboard.writeText(key);
               showList(keys);
-            }, `Đã tạo key mới cho ${k.name} và copy sẵn, gửi cho họ nhé.`);
+            }, `Đã tạo key mới cho ${k.name} và copy sẵn, gửi cho họ nhé.`));
           }
         })
       ]);
@@ -252,8 +184,8 @@
       el('button', {
         class: 'text-btn danger', text: 'Xóa',
         onclick: () => {
-          if (!confirm(`Xóa hẳn key của "${k.name}"? Máy đó sẽ bị khóa và key không dùng lại được.`)) return;
-          busy(async () => showList(await call('admin-remove', k.id)), `Đã xóa key của ${k.name}.`);
+          MondiroUI.confirm({ title: `Xóa hẳn key của "${k.name}"?`, message: 'Máy đó sẽ bị khóa và key này không dùng lại được.', okText: 'Xóa key', danger: true })
+            .then(ok => ok && busy(async () => showList(await call('admin-remove', k.id)), `Đã xóa key của ${k.name}.`));
         }
       })
     ]);

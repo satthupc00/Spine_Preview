@@ -9,10 +9,7 @@
   <header class="top">
     <div class="brand">
       <img class="brand-icon" src="build/icon.png" alt="">
-      <div class="brand-text">
-        <div class="brand-name"><span class="m">Mondiro</span> <span class="a">Spine Preview</span><span id="app-version"></span></div>
-        <div class="brand-desc">Xem trước &amp; xuất animation Spine 3.7.94</div>
-      </div>
+      <div class="brand-name"><span><span class="m">Mondiro</span> <span class="a">Spine Preview</span></span></div>
     </div>
     <div class="tools" id="top-tools"></div>
   </header>
@@ -52,7 +49,14 @@
 
       <div id="preview-canvas-wrap" tabindex="0">
         <div id="marquee-box"></div>
-        <div id="preview-empty-hint">Kéo skeleton từ Json List, hoặc thả thẳng file .json vào đây</div>
+        <div id="preview-empty-hint">
+          <div class="empty-title">Kéo file .json vào đây</div>
+          <div class="empty-sub">Hoặc kéo skeleton từ Json List bên trái. Spine 3.7.94, kèm .atlas + .png cùng thư mục.</div>
+          <div class="empty-keys">
+            <span><kbd>Space</kbd>Play/Pause</span><span><kbd>Q</kbd><kbd>E</kbd>Frame đầu / cuối</span>
+            <span><kbd>Lăn chuột</kbd>Zoom</span><span><kbd>Ctrl</kbd><kbd>Z</kbd>Hoàn tác</span><span><kbd>Delete</kbd>Xóa</span>
+          </div>
+        </div>
         <div id="sequencer-empty-hint" hidden>Kéo json từ Json List vào khung nhìn hoặc xuống thanh timeline bên dưới — tự thêm anim đầu tiên</div>
         <div id="zoom-flash" class="zoom-flash">100%</div>
       </div>
@@ -104,7 +108,7 @@
           <div class="qa-check-body">
             <label for="qa-framematch">Frame đầu = frame cuối</label>
             <small>Pose frame đầu và frame cuối trùng tuyệt đối</small>
-            <input type="text" id="qa-framematch-filter" class="qa-filter" placeholder="Chỉ kiểm anim có chứa… (vd: idle)" spellcheck="false">
+            <input type="text" id="qa-framematch-filter" class="qa-filter" placeholder="Lọc tên anim, vd: idle" title="Chỉ kiểm các anim có tên chứa chữ này (để trống = kiểm tất cả)" spellcheck="false">
           </div>
         </div>
         <div class="qa-results">
@@ -177,6 +181,7 @@
     <span class="status-hint"><kbd>Space</kbd> Play/Pause · <kbd>Q</kbd>/<kbd>Home</kbd> Frame đầu · <kbd>E</kbd> Frame cuối · <kbd>Ctrl</kbd>+<kbd>Z</kbd> Hoàn tác · <kbd>Lăn chuột</kbd> Zoom · <kbd>Delete</kbd> Xóa json đang chọn</span>
     <span class="credit">Created by Mondiro</span>
   </footer>
+  <script src="ui-shell.js"></script>
   <script src="checklist.js"></script>
   <script src="renderer.js"></script>
   <script src="license-ui.js"></script>

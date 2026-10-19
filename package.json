@@ -1,6 +1,6 @@
 {
   "name": "spine-preview",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "Preview & export tool for Spine 3.7.94 animation exports",
   "main": "main.js",
   "scripts": {
@@ -31,6 +31,7 @@
       "main.js",
       "renderer.js",
       "spine-stage.js",
+      "ui-shell.js",
       "checklist.js",
       "license.js",
       "license-ui.js",

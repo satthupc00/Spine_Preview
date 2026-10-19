@@ -57,19 +57,23 @@ body { display: flex; flex-direction: column; }
   display: flex;
   align-items: center;
   gap: 16px;
+  min-height: 58px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--line);
   background: var(--chrome);
   flex: 0 0 auto;
+  -webkit-app-region: drag;          /* the header is the window's title bar (m-skill §2.1) */
 }
+.electron .top { padding-right: 150px; }  /* room for the Windows minimize / maximize / close buttons */
+.top button, .top input, .top select, .top a, .top .no-drag { -webkit-app-region: no-drag; }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand-icon { width: 34px; height: 34px; flex: 0 0 auto; -webkit-user-drag: none; }
-.brand-name { font-size: 17px; font-weight: 700; line-height: 1.15; white-space: nowrap; }
+.brand-name { font-size: 17px; font-weight: 700; line-height: 34px; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
 .brand-name .m { color: var(--red); }
 .brand-name .a { color: #fff; }
-.brand-ver { margin-left: 8px; font-size: 11.5px; font-weight: 600; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-.brand-latest { margin-left: 8px; font-size: 11.5px; font-weight: 600; color: #4CD07D; }
-.brand-desc { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+/* "latest" badge after the app name while this copy is the newest release */
+.latest-pill { font-size: 10.5px; font-weight: 800; line-height: 16px; color: #2EB872; background: #2eb87224; padding: 1px 7px; border-radius: 20px; }
+.latest-pill.pop { animation: fx-pop .32s var(--ease-spring); }
 .tools { display: flex; gap: 8px; margin-left: auto; }
 
 /* ---- Footer / status bar (m-skill §3) ---- */
@@ -119,6 +123,14 @@ body { display: flex; flex-direction: column; }
 #json-list-panel { width: 220px; min-width: 220px; flex: 0 0 220px; }
 #preview-panel { flex: 1 1 auto; min-width: 0; background: var(--bg-card); position: relative; }
 #properties-panel { width: 270px; min-width: 270px; flex: 0 0 270px; }
+/* The Properties column scrolls when the window is short (the cards no longer fit under each
+   other on 1366x768 / 1024x640 since the Checklist card was added). */
+#properties-panel { overflow-y: auto; padding-bottom: 10px; }
+#properties-panel > * { flex-shrink: 0; }
+#properties-panel > .panel-header { position: sticky; top: 0; z-index: 3; }
+#properties-panel::-webkit-scrollbar { width: 8px; }
+#properties-panel::-webkit-scrollbar-thumb { background: #3A3E46; border-radius: 4px; }
+#properties-panel::-webkit-scrollbar-thumb:hover { background: #4A4F59; }
 
 .panel-header {
   padding: 12px 14px;
@@ -354,6 +366,21 @@ input[type="number"]::-webkit-outer-spin-button {
   font-size: 12.5px;
   text-align: center;
   max-width: 260px;
+}
+/* Preview empty state (m-skill §5): title + one line + shortcuts */
+#preview-empty-hint { max-width: 460px; width: max-content; }
+.empty-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.empty-sub { margin-bottom: 14px; line-height: 1.5; }
+.empty-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 14px; font-size: 11.5px; }
+.empty-keys kbd {
+  font: 600 10.5px "Segoe UI", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-right: 4px;
 }
 
 .seq-anim-chip { cursor: grab; }
@@ -745,20 +772,6 @@ input[type="range"] { accent-color: var(--accent); }
 
 #export-status { font-size: 11.5px; color: var(--text-dim); margin-top: 6px; min-height: 14px; }
 
-.top-pill {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--text);
-  font-weight: 600;
-  font-size: 11.5px;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-.top-pill:hover:not(:disabled) { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .45); }
-.top-pill:disabled { cursor: default; color: var(--text-dim); }
-#update-pill.ready { background: #2e9e5b; border-color: #2e9e5b; }
-#update-pill.ready:hover { background: #36b569; }
 
 /* ---- Lock screen ---- */
 #lock-overlay {
@@ -786,7 +799,8 @@ input[type="range"] { accent-color: var(--accent); }
 .lock-brand { font-size: 18px; font-weight: 700; }
 .lock-brand .brand-red { color: var(--red); }
 .lock-brand .brand-white { color: #fff; }
-.lock-sub { color: var(--text-dim); font-size: 12px; margin-top: -6px; }
+.lock-logo { width: 72px; height: 72px; display: block; margin: 0 auto 2px; -webkit-user-drag: none; }
+.lock-brand { text-align: center; }
 .lock-msg { font-size: 12.5px; line-height: 1.5; margin-top: 6px; }
 .lock-msg.error, .admin-msg.error { color: var(--danger); }
 .lock-form { display: flex; flex-direction: column; }
@@ -917,7 +931,7 @@ button:not(:disabled):active, .anim-chip:active { transform: scale(.95); transit
 @keyframes fx-sheen { to { left: 130%; } }
 
 .secondary-btn:not(:disabled):hover, .text-btn:not(:disabled):hover, .icon-btn:not(:disabled):hover,
-#choose-output-btn:hover, .top-pill:not(:disabled):hover { border-color: var(--red); transform: translateY(-1px); }
+#choose-output-btn:hover { border-color: var(--red); transform: translateY(-1px); }
 .icon-btn:not(:disabled):hover { color: #fff; }
 
 /* tabs: a red ink bar slides under the active tab (positioned by ui-fx.js) */
@@ -1030,7 +1044,6 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 @keyframes fx-fade { from { opacity: 0; } to { opacity: 1; } }
 
 /* update pill: soft red pulse while it waits to be clicked */
-#update-pill.ready { animation: fx-pulse 1.8s ease-in-out infinite; }
 @keyframes fx-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(46, 158, 91, .5); } 50% { box-shadow: 0 0 0 6px rgba(46, 158, 91, 0); } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1167,17 +1180,133 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 .seq-drop-marker.blend { background: var(--warn); box-shadow: 0 0 0 3px rgba(242, 184, 75, .25); }
 .seq-drop-marker.blend span { background: var(--warn); color: #1F2126; }
 
-/* Header "Kiểm tra cập nhật" button */
-#check-update-btn { display: inline-flex; align-items: center; gap: 6px; }
-#check-update-btn svg { flex: 0 0 auto; transition: transform .4s var(--ease-out); }
-#check-update-btn:not(:disabled):hover svg { transform: rotate(-90deg); }
-#check-update-btn.checking { color: var(--text-dim); cursor: progress; }
-#check-update-btn.checking svg { animation: fx-spin .8s linear infinite; }
-#check-update-btn.ok { border-color: #2E9E5B; color: #7FD6A0; }
-#check-update-btn.news { border-color: var(--red); color: #fff; }
-#check-update-btn.fail { border-color: var(--warn); color: var(--warn); }
-@keyframes fx-spin { to { transform: rotate(360deg); } }
 
 /* a newly dropped clip pops into place while its neighbours slide out of the way */
 .seq-clip-pop { animation: seq-clip-pop .34s var(--ease-spring) both; }
 @keyframes seq-clip-pop { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }
+
+
+/* ===== App shell (ui-shell.js) ===== */
+@keyframes fx-spin { to { transform: rotate(360deg); } }
+
+/* icon-only update button (m-skill §2b) */
+.ibtn {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.ibtn svg { width: 17px; height: 17px; }
+.ibtn:not(:disabled):hover { background: var(--hover); border-color: var(--line); color: #fff; transform: translateY(-1px); }
+.ibtn.upd svg { transition: transform .4s var(--ease-out); }
+.ibtn.upd:hover svg { transform: rotate(-90deg); }
+.ibtn.upd.checking { cursor: progress; }
+.ibtn.upd.checking svg { animation: fx-spin .8s linear infinite; }
+.ibtn.upd.ok { color: #3DDC8A; }
+.ibtn.upd.news { color: #3DDC8A; animation: upd-pulse 1.2s ease-in-out infinite; }
+.ibtn.upd.fail { color: var(--warn); }
+@keyframes upd-pulse { 50% { opacity: .4; } }
+
+/* keep the window draggable above full-window overlays (title bar is hidden) */
+.win-drag { position: fixed; top: 0; left: 0; right: 150px; height: 58px; -webkit-app-region: drag; z-index: 1; }
+
+/* in-app update modal (m-skill §6.1) */
+.upd-back, .mdl-back {
+  position: fixed; inset: 0;
+  z-index: 7000;
+  display: grid; place-items: center;
+  background: rgba(5, 8, 15, .55);
+  animation: fx-fade .2s ease both;
+}
+.mdl-back { z-index: 8000; }
+.upd-back.closing, .mdl-back.closing { animation: fx-fade-out .16s ease both; }
+@keyframes fx-fade-out { to { opacity: 0; } }
+.upd-card {
+  width: 520px; max-width: calc(100vw - 32px);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .5);
+  animation: fx-dialog .32s var(--ease-spring) both;
+  user-select: text;
+}
+.upd-title { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 700; color: #fff; }
+.upd-title svg { width: 22px; height: 22px; color: var(--warn); flex: 0 0 auto; }
+.upd-sub { color: var(--text-dim); margin: 8px 0 14px; font-size: 12.5px; }
+.upd-notes { background: var(--chrome); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; max-height: 190px; overflow: auto; font-size: 12.5px; line-height: 1.6; }
+.upd-notes ul { margin: 0; padding-left: 18px; }
+.upd-notes-empty { color: var(--text-dim); }
+.upd-actions { display: flex; gap: 10px; margin-top: 16px; }
+.upd-later { padding: 0 18px; height: 42px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--text); font-weight: 600; cursor: pointer; }
+.upd-later:hover { border-color: var(--red); }
+.upd-go { flex: 1; height: 42px; border-radius: 10px; border: 0; position: relative; overflow: hidden; background: #33363D; color: #fff; font-weight: 700; cursor: default; }
+.upd-go .bar { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #2E9E5B, #3DDC8A); transition: width .25s linear; }
+.upd-go span { position: relative; }
+.upd-go.ready { background: var(--red); cursor: pointer; box-shadow: 0 6px 16px rgba(229, 56, 59, .35); }
+.upd-go.ready .bar { display: none; }
+.upd-go.ready:hover { background: #F04447; transform: translateY(-1px); }
+.upd-go.failed { background: #4A3A1E; color: var(--warn); cursor: pointer; }
+.upd-go.failed .bar { display: none; }
+
+/* confirm modal (replaces window.confirm) */
+.mdl-card {
+  width: 400px; max-width: calc(100vw - 32px);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px 20px 16px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .5);
+  animation: fx-dialog .3s var(--ease-spring) both;
+}
+.mdl-title { font-size: 15px; font-weight: 700; color: #fff; word-break: break-word; }
+.mdl-msg { color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+.mdl-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.mdl-actions button { height: 34px; padding: 0 16px; border-radius: 8px; font-weight: 700; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--text); }
+.mdl-actions .mdl-cancel:hover { border-color: var(--red); }
+.mdl-actions .mdl-ok { background: var(--bg-card-alt); }
+.mdl-actions .mdl-ok.danger { background: var(--red); border-color: var(--red); color: #fff; }
+.mdl-actions .mdl-ok.danger:hover { background: #F04447; }
+
+/* toast (m-skill §5) */
+.toast {
+  position: fixed; left: 50%; bottom: 44px;
+  z-index: 9000;
+  max-width: min(560px, calc(100vw - 32px));
+  background: #15171B;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--red);
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 12.5px;
+  color: var(--text);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  opacity: 0;
+  transform: translate(-50%, 10px);
+  pointer-events: none;
+  transition: opacity .2s ease, transform .3s var(--ease-out);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* "Thả để mở" while files are dragged over a drop zone (m-skill §5) */
+#json-list-wrap, #preview-canvas-wrap { position: relative; }
+.drop-over {
+  position: absolute; inset: 6px;
+  z-index: 8;
+  display: grid; place-items: center;
+  border: 2px dashed var(--red);
+  border-radius: 10px;
+  background: rgba(229, 56, 59, .08);
+  color: #fff;
+  font-size: 15px; font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.file-over > .drop-over { opacity: 1; }

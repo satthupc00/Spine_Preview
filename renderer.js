@@ -389,7 +389,15 @@ function deleteAllJson() {
 
 // Nút trên header luôn xóa TOÀN BỘ Json List; xóa riêng các mục đang chọn vẫn làm được bằng
 // phím Delete/Backspace khi đang focus trong list (giữ lại deleteSelectedJson cho việc đó).
-deleteJsonBtn.addEventListener('click', deleteAllJson);
+deleteJsonBtn.addEventListener('click', async () => {
+  const n = library.size;
+  const ok = await MondiroUI.confirm({
+    title: 'Xóa toàn bộ Json List?',
+    message: `${n} file json sẽ bị gỡ khỏi danh sách và khung xem (file trên máy không bị xóa).`,
+    okText: 'Xóa hết', danger: true
+  });
+  if (ok) deleteAllJson();
+});
 jsonListEl.addEventListener('keydown', ev => {
   if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); ev.stopPropagation(); deleteSelectedJson(); }
 });
@@ -938,6 +946,7 @@ exportBtn.addEventListener('click', async () => {
     }
   }
   exportStatusEl.textContent = `Xuất xong: ${ok} thành công${fail ? ', ' + fail + ' lỗi' : ''}`;
+  MondiroUI.toast(fail ? `Đã xuất ${ok} ảnh PNG, ${fail} ảnh lỗi` : `Đã xuất ${ok} ảnh PNG vào ${outputRoot}`);
 });
 
 // ---------------------------------------------------------------------------

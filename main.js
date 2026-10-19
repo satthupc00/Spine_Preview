@@ -101,9 +101,11 @@ function createWindow() {
     minHeight: MIN_HEIGHT,
     title: 'Mondiro Spine Preview',
     backgroundColor: '#1F2126',
-    // Changes Log lives in the app's own GUI now, not the OS menu bar, so the menu bar goes back
-    // to auto-hiding behind Alt like before. F12 still opens DevTools (wired below) when something
-    // needs diagnosing on someone else's machine.
+    // No Windows title bar: the Mondiro header is the title bar (draggable, see .top in
+    // styles.css) and the minimize / maximize / close buttons are drawn over its right end in the
+    // header colour. Keeps Snap Layouts, double-click maximize and the native border/shadow.
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#1F2126', symbolColor: '#FFFFFF', height: 58 },
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'build', 'icon.ico'),
     webPreferences: {
