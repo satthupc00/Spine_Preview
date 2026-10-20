@@ -350,7 +350,7 @@ class SpineStage {
       spine.position.set(exportW / 2 - rx * s, exportH / 2 + ry * spine.scale.y);
 
       this.app.renderer.render(holder, { renderTexture, clear: true });
-      return this.app.renderer.extract.canvas(renderTexture).toDataURL('image/png');
+      return SpineStage._lightAwarePng(this.app.renderer, renderTexture, exportW, exportH);
     } finally {
       holder.removeChild(spine);
       holder.destroy({ children: false });
@@ -361,6 +361,35 @@ class SpineStage {
       }
       renderTexture.destroy(true);
     }
+  }
+
+  // Additive / screen slots only add colour and never write alpha (see _fixLightBlendAlpha), so
+  // over the transparent export background their glow ends up as colour with alpha 0 — and a
+  // normal un-premultiply throws it away (sparkles vanished from exported PNGs). Read the raw
+  // premultiplied pixels instead and give every pixel alpha = max(alpha, r, g, b): normal pixels
+  // are unchanged (premultiplied colour never exceeds alpha), and added light keeps exactly its
+  // brightness as coverage, so the PNG over black looks like Spine's additive result.
+  static _lightAwarePng(renderer, renderTexture, w, h) {
+    const { pixels } = renderer.extract._rawPixels(renderTexture);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    const out = img.data;
+    const n = Math.min(out.length, pixels.length);
+    for (let i = 0; i < n; i += 4) {
+      const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
+      const a = Math.max(pixels[i + 3], r, g, b);
+      if (a === 0) continue;
+      const k = 255 / a;
+      out[i] = Math.min(255, Math.round(r * k));
+      out[i + 1] = Math.min(255, Math.round(g * k));
+      out[i + 2] = Math.min(255, Math.round(b * k));
+      out[i + 3] = a;
+    }
+    ctx.putImageData(img, 0, 0);
+    return canvas.toDataURL('image/png');
   }
 
   // ---- skin helpers ---------------------------------------------------------
