@@ -4,7 +4,5 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
-# v2.7.0
-- Logo mới
-- Bảng cập nhật mới ngay trong app
-- Ẩn thanh tiêu đề Windows, header kéo được cửa sổ
+# v2.7.1
+- Sửa lỗi xuất PNG bị mất đốm sáng khi dùng Blending mode Additive
