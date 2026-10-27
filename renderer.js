@@ -2312,26 +2312,40 @@ function undo() {
 }
 
 
+// Who the Preview scrub bar drives: the single focused skeleton, or — when several skeletons
+// with the same animation list are selected and all on the same animation — the whole group
+// (the first one is the time reference). null = nothing to scrub.
+function scrubTargets() {
+  const focused = getFocusedInstance();
+  if (focused) return [focused];
+  const group = sharedAnimGroup();
+  if (!group) return null;
+  const cur = SpineStage.currentAnimation(group.sel[0].spine);
+  if (!cur || group.sel.some(i => SpineStage.currentAnimation(i.spine) !== cur)) return null;
+  return group.sel;
+}
+
 let scrubDragging = false; // true while the Preview scrub bar is held, so playback doesn't fight the drag
 scrubBar.addEventListener('mousedown', () => {
   scrubDragging = true;
-  const focused = getFocusedInstance();
-  if (focused) focused.playing = false; // holding/clicking the scrub bar stops playback
+  const targets = scrubTargets();
+  if (targets) targets.forEach(i => { i.playing = false; }); // holding/clicking the scrub bar stops playback
 });
 window.addEventListener('mouseup', () => { scrubDragging = false; });
 scrubBar.addEventListener('input', () => {
-  const focused = getFocusedInstance();
-  if (!focused) return;
-  const dur = SpineStage.animationDuration(focused.spine);
-  if (dur > 0) SpineStage.seek(focused.spine, (scrubBar.value / 1000) * dur);
+  const targets = scrubTargets();
+  if (!targets) return;
+  const dur = SpineStage.animationDuration(targets[0].spine);
+  if (dur > 0) targets.forEach(i => SpineStage.seek(i.spine, (scrubBar.value / 1000) * dur));
 });
 scrubPlayBtn.addEventListener('click', () => togglePlay());
 
 function updateScrubUI() {
   const sel = getSelectedInstances();
-  const focused = getFocusedInstance();
+  const targets = scrubTargets();
+  const focused = targets ? targets[0] : null;
 
-  if (sel.length > 1) {
+  if (sel.length > 1 && !targets) {
     // Hide the controls but keep the row's height, otherwise the preview resizes and the whole
     // layout jumps whenever the selection count crosses 1.
     scrubBarWrapEl.classList.add('scrub-hidden');
@@ -2349,7 +2363,7 @@ function updateScrubUI() {
 
   scrubBar.disabled = false;
   scrubPlayBtn.disabled = false;
-  scrubPlayBtn.textContent = focused.playing ? '⏸' : '▶';
+  scrubPlayBtn.textContent = targets.some(i => i.playing) ? '⏸' : '▶';
   const dur = SpineStage.animationDuration(focused.spine);
   const time = SpineStage.currentTime(focused.spine);
   const fps = 30;
@@ -2373,6 +2387,12 @@ function togglePlay() {
   const targets = sel.length ? sel : (instances.length === 1 ? [instances[0]] : []);
   if (!targets.length) return;
   const anyPlaying = targets.some(i => i.playing);
+  // A group on the same animation starts again in lockstep: everyone jumps to the first one's frame.
+  const group = !anyPlaying && targets.length > 1 ? scrubTargets() : null;
+  if (group && group.length > 1) {
+    const t = SpineStage.currentTime(group[0].spine);
+    group.forEach(i => SpineStage.seek(i.spine, t));
+  }
   targets.forEach(i => { i.playing = !anyPlaying; });
 }
 
