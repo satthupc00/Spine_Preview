@@ -9,6 +9,8 @@
   const panel = document.getElementById('order-panel');
   const list = document.getElementById('order-list');
   if (!panel || !list) return;
+  list.tabIndex = 0; // takes keyboard focus on click so Delete removes the selected skeletons (renderer.js)
+  list.setAttribute('aria-label', 'Thứ tự vẽ · Delete để xóa skeleton đang chọn');
 
   const GRIP = '<svg viewBox="0 0 10 16" width="8" height="13" aria-hidden="true"><g fill="currentColor"><circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/><circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/><circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></g></svg>';
   let drag = null;
@@ -56,6 +58,7 @@
   // ---- hold & drag ----
   function onDown(ev, row, inst) {
     if (ev.button !== 0) return;
+    list.focus({ preventScroll: true });
     const rows = [...list.querySelectorAll('.order-row')];
     drag = {
       row, inst, rows,

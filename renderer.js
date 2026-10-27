@@ -2404,6 +2404,14 @@ function togglePlay() {
 window.addEventListener('keydown', ev => {
   const tag = (ev.target && ev.target.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  // Focus in the "Thứ tự vẽ" panel: Delete removes the selected skeletons from the canvas (that
+  // panel lists canvas skeletons), never the Json List entries.
+  if ((ev.key === 'Delete' || ev.key === 'Backspace') && ev.target && ev.target.closest && ev.target.closest('#order-panel')) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    deleteSelectedInstances();
+    return;
+  }
   if ((ev.key === 'Delete' || ev.key === 'Backspace') && libSelection.length) {
     ev.preventDefault();
     ev.stopPropagation();

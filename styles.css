@@ -1344,3 +1344,5 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
   transition: background-color var(--t-fast) ease, box-shadow var(--t-med) var(--ease-out); /* follows the pointer without lag */
 }
 @media (prefers-reduced-motion: reduce) { .order-row { transition: none; } }
+#order-list:focus { outline: none; }
+#order-list:focus-visible { outline: 2px solid var(--red); outline-offset: -2px; border-radius: 6px; }
