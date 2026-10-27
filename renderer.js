@@ -777,8 +777,44 @@ function getFocusedInstance() {
   return null;
 }
 
+// Several skeletons selected whose animation lists are exactly the same (same names): show that
+// shared list, and a click plays the animation on every selected skeleton at once.
+function sharedAnimGroup() {
+  const sel = getSelectedInstances();
+  if (sel.length < 2) return null;
+  const key = list => [...list].sort().join('\n');
+  const names = SpineStage.animationNames(sel[0].spine);
+  const k = key(names);
+  if (!names.length || sel.some(i => key(SpineStage.animationNames(i.spine)) !== k)) return null;
+  return { sel, names };
+}
+
 function renderAnimList() {
   animListEl.innerHTML = '';
+  const group = sharedAnimGroup();
+  if (group) {
+    const label = document.createElement('div');
+    label.className = 'anim-owner';
+    label.textContent = `${group.sel.length} skeleton`;
+    label.title = group.sel.map(i => i.name).join('\n');
+    animListEl.appendChild(label);
+    const currents = new Set(group.sel.map(i => SpineStage.currentAnimation(i.spine)));
+    const current = currents.size === 1 ? [...currents][0] : null;
+    group.names.forEach(name => {
+      const chip = document.createElement('div');
+      chip.className = 'anim-chip' + (current === name ? ' active' : '');
+      chip.textContent = name;
+      chip.title = `Phát "${name}" cho cả ${group.sel.length} skeleton đang chọn`;
+      chip.addEventListener('click', () => {
+        group.sel.forEach(i => { SpineStage.play(i.spine, name); i.playing = true; });
+        renderAnimList();
+      });
+      animListEl.appendChild(chip);
+    });
+    Checklist.decorate(null, {});
+    updateToolbarHeight();
+    return;
+  }
   const inst = getFocusedInstance();
   if (inst) {
     const label = document.createElement('div');

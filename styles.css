@@ -1310,3 +1310,37 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
   transition: opacity .15s ease;
 }
 .file-over > .drop-over { opacity: 1; }
+
+/* ---- "Thứ tự vẽ" (Preview tab): draw order, front-most on top, hold & drag to reorder ---- */
+#order-panel { display: flex; flex-direction: column; flex: 0 0 auto; max-height: 42%; min-height: 0; border-top: 1px solid var(--border); }
+.order-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; white-space: nowrap; }
+.order-header small { font-size: 10.5px; font-weight: 600; color: var(--text-dim); }
+#order-list { overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+.order-empty { color: var(--text-dim); font-size: 11.5px; padding: 6px 4px; }
+.order-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid transparent;
+  font-size: 12px;
+  cursor: grab;
+  touch-action: none;
+  transition: transform var(--t-med) var(--ease-out), background-color var(--t-fast) ease, border-color var(--t-fast) ease, box-shadow var(--t-med) var(--ease-out);
+}
+.order-row:hover { background: var(--row-hover); }
+.order-row.selected { background: var(--selected-bg); border-color: var(--red); box-shadow: inset 3px 0 0 0 var(--red); }
+.order-grip { color: #5A5F69; display: grid; place-items: center; flex: 0 0 auto; }
+.order-row:hover .order-grip { color: var(--text); }
+.order-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-idx { color: var(--text-dim); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+#order-list.sorting .order-row { cursor: grabbing; }
+.order-row.dragging {
+  position: relative; z-index: 5;
+  cursor: grabbing;
+  background: var(--bg-card-alt);
+  border-color: var(--red);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .45);
+  transition: background-color var(--t-fast) ease, box-shadow var(--t-med) var(--ease-out); /* follows the pointer without lag */
+}
+@media (prefers-reduced-motion: reduce) { .order-row { transition: none; } }

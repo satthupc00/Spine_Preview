@@ -33,6 +33,7 @@
       "spine-stage.js",
       "ui-shell.js",
       "checklist.js",
+      "layer-order.js",
       "license.js",
       "license-ui.js",
       "updater.js",
