@@ -650,7 +650,7 @@ input[type="number"]::-webkit-outer-spin-button {
   flex-shrink: 0;
 }
 
-#scrub-bar { flex: 1; accent-color: var(--accent); }
+#scrub-bar { flex: 1; height: 22px; margin: 0; cursor: pointer; accent-color: var(--accent); }
 /* keeps the row's height so the preview canvas never resizes when the bar hides */
 #scrub-bar-wrap.scrub-hidden > * { visibility: hidden; }
 .anim-owner {
@@ -1312,10 +1312,11 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 .file-over > .drop-over { opacity: 1; }
 
 /* ---- "Thứ tự vẽ" (Preview tab): draw order, front-most on top, hold & drag to reorder ---- */
-#order-panel { display: flex; flex-direction: column; flex: 0 0 auto; max-height: 42%; min-height: 0; border-top: 1px solid var(--border); }
-.order-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; white-space: nowrap; }
-.order-header small { font-size: 10.5px; font-weight: 600; color: var(--text-dim); }
-#order-list { overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+#fpanel-order { width: 250px; }
+.order-body { padding: 8px; }
+.order-hint { font-size: 10.5px; color: var(--text-dim); margin: 0 2px 6px; }
+#fpanel-order.off-tab .order-body { opacity: .5; }
+#order-list { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; min-height: 0; max-height: 50vh; }
 .order-empty { color: var(--text-dim); font-size: 11.5px; padding: 6px 4px; }
 .order-row {
   display: flex; align-items: center; gap: 8px;
@@ -1423,3 +1424,22 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 }
 .fpanel-close:hover { background: var(--red); color: #fff; }
 .fpanel-body { padding: 12px; overflow-y: auto; min-height: 0; }
+
+/* small ✕ delete button on Json List / Thứ tự vẽ rows: shows on hover or when selected */
+.json-item { display: flex; align-items: center; gap: 6px; }
+.json-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-x {
+  flex: 0 0 auto;
+  width: 20px; height: 20px; padding: 0;
+  display: grid; place-items: center;
+  border: 0; border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--t-fast) ease, background-color var(--t-fast) ease, color var(--t-fast) ease;
+}
+.json-item:hover .row-x, .json-item.selected .row-x, .order-row:hover .row-x, .order-row.selected .row-x { opacity: 1; }
+.row-x:hover { background: var(--red); color: #fff; transform: none; }
+.row-x:focus-visible { opacity: 1; }

@@ -91,6 +91,7 @@ async function processJsonFile(jsonPath) {
   }
 
   try {
+    SpineStage.forgetSkeletonData(jsonPath); // always read the files fresh (re-adding after editing in Spine)
     entry.spineData = await stage.loadSkeletonData(jsonPath, atlasPath);
   } catch (e) {
     entry.error = 'Không dựng được skeleton: ' + (e && e.message ? e.message : e);
@@ -309,7 +310,22 @@ function renderJsonList() {
     library.forEach(entry => {
       const item = document.createElement('div');
       item.className = 'json-item' + (entry.valid ? '' : ' invalid') + (libSelection.includes(entry.key) ? ' selected' : '');
-      item.textContent = entry.valid ? entry.name : `${entry.name} — ${entry.error}`;
+      const nameEl = document.createElement('span');
+      nameEl.className = 'json-name';
+      nameEl.textContent = entry.valid ? entry.name : `${entry.name} — ${entry.error}`;
+      const xBtn = document.createElement('button');
+      xBtn.type = 'button';
+      xBtn.className = 'row-x';
+      xBtn.textContent = '✕';
+      xBtn.title = 'Xóa json này khỏi danh sách (các skeleton đang dùng nó cũng bị gỡ khỏi khung). Ctrl+Z để hoàn tác';
+      xBtn.setAttribute('aria-label', 'Xóa json');
+      xBtn.addEventListener('mousedown', ev => { ev.preventDefault(); ev.stopPropagation(); }); // no drag / marquee from the button
+      xBtn.addEventListener('click', ev => {
+        ev.stopPropagation();
+        libSelection = [entry.key];
+        deleteSelectedJson();
+      });
+      item.append(nameEl, xBtn);
       item.title = entry.jsonPath;
       item.dataset.key = entry.key;
       item.addEventListener('click', ev => {
@@ -357,7 +373,6 @@ function deleteSelectedJson() {
     // A Sequencer layer can never be empty/orphaned — if its json goes away, the layer goes too.
     seqLayers.slice().forEach(layer => { if (layer.key === key) seqDeleteLayer(layer.id); });
     library.delete(key);
-    SpineStage.forgetSkeletonData(key);
   });
   libSelection = [];
   renderJsonList();
@@ -380,7 +395,6 @@ function deleteAllJson() {
     });
     seqLayers.slice().forEach(layer => { if (layer.key === key) seqDeleteLayer(layer.id); });
     library.delete(key);
-    SpineStage.forgetSkeletonData(key);
   });
   libSelection = [];
   renderJsonList();
@@ -1750,6 +1764,15 @@ window.addEventListener('mouseup', () => {
 });
 
 // ---- ruler scrub + loop start/end markers ------------------------------------------------
+// Shortcuts are ignored only while typing text; a focused slider / checkbox / colour swatch
+// (e.g. right after dragging the scrub bar) must not swallow Space / D / Q / E.
+function isTypingTarget(el) {
+  const tag = (el && el.tagName) || '';
+  if (tag === 'TEXTAREA' || (el && el.isContentEditable)) return true;
+  if (tag !== 'INPUT') return false;
+  return !['range', 'checkbox', 'radio', 'color', 'button'].includes((el.type || '').toLowerCase());
+}
+
 // Dragging a playhead snaps to whole frames (30 fps); hold Shift for the old smooth scrub.
 function snapToFrame(t, smooth, fps = SEQ_FPS) {
   return smooth ? t : Math.round(t * fps) / fps;
@@ -2223,6 +2246,7 @@ let suppressSnapshot = false; // guarded while restoreSnapshot() itself is rebui
 
 function snapshotState() {
   return {
+    library: Array.from(library.entries()), // so removing a json (✕ / Delete / Xóa hết) can be undone
     nextInstanceId, seqNextLayerId, seqNextClipId,
     activeTab,
     instances: instances.map(i => ({
@@ -2250,6 +2274,10 @@ function pushUndoSnapshot() {
 
 function restoreSnapshot(snap) {
   suppressSnapshot = true;
+  if (snap.library) {
+    library.clear();
+    snap.library.forEach(([k, e]) => library.set(k, e));
+  }
 
   instances.forEach(i => stage.removeSpine(i.spine));
   seqLayers.forEach(l => { if (l.spine) stage.removeSpine(l.spine); });
@@ -2307,6 +2335,7 @@ function restoreSnapshot(snap) {
   renderSeqTimeline();
   updateSeqBlendProperties();
 
+  renderJsonList();
   suppressSnapshot = false;
 }
 
@@ -2331,23 +2360,45 @@ function scrubTargets() {
 }
 
 let scrubDragging = false; // true while the Preview scrub bar is held, so playback doesn't fight the drag
-let scrubSmooth = false;   // Shift held while dragging the scrub bar = no frame snapping
-['pointerdown', 'pointermove'].forEach(t => scrubBar.addEventListener(t, ev => { scrubSmooth = ev.shiftKey; }));
-scrubBar.addEventListener('mousedown', () => {
-  scrubDragging = true;
-  const targets = scrubTargets();
-  if (targets) targets.forEach(i => { i.playing = false; }); // holding/clicking the scrub bar stops playback
-});
-window.addEventListener('mouseup', () => { scrubDragging = false; });
-scrubBar.addEventListener('input', () => {
+// The bar works in frame units (max = frame count). The drag is handled here rather than by the
+// native range: the thumb jumps frame by frame (Shift = smooth), and the bar never takes keyboard
+// focus, so Space / D keep controlling playback.
+function scrubSeekFromClientX(clientX, smooth) {
   const targets = scrubTargets();
   if (!targets) return;
   const dur = SpineStage.animationDuration(targets[0].spine);
   if (dur <= 0) return;
-  let t = snapToFrame((scrubBar.value / 1000) * dur, scrubSmooth);
+  const frames = Math.max(1, Math.round(dur * SEQ_FPS));
+  const r = scrubBar.getBoundingClientRect();
+  const inset = 8; // half the thumb: the thumb centre never reaches the bar's very ends
+  const f = Math.max(0, Math.min(1, (clientX - r.left - inset) / Math.max(1, r.width - inset * 2)));
+  let t = snapToFrame(f * frames / SEQ_FPS, smooth);
+  scrubBar.step = smooth ? 'any' : '1';
+  scrubBar.max = frames;
+  scrubBar.value = t * SEQ_FPS;
   if (t >= dur) t = Math.max(0, dur - LAST_FRAME_EPS); // a looping track would wrap the exact end back to frame 0
   targets.forEach(i => SpineStage.seek(i.spine, t));
+}
+scrubBar.addEventListener('pointerdown', ev => {
+  if (ev.button !== 0 || scrubBar.disabled) return;
+  ev.preventDefault(); // no native drag, no focus
+  scrubDragging = true;
+  const targets = scrubTargets();
+  if (targets) targets.forEach(i => { i.playing = false; }); // holding/clicking the scrub bar stops playback
+  scrubSeekFromClientX(ev.clientX, ev.shiftKey);
+  const move = e => { scrubSeekFromClientX(e.clientX, e.shiftKey); };
+  const up = () => {
+    scrubDragging = false;
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
 });
+scrubBar.addEventListener('mousedown', ev => ev.preventDefault());
+scrubBar.tabIndex = -1;
 scrubPlayBtn.addEventListener('click', () => togglePlay());
 
 function updateScrubUI() {
@@ -2378,8 +2429,9 @@ function updateScrubUI() {
   const time = SpineStage.currentTime(focused.spine);
   const fps = 30;
   if (!scrubDragging) {
-    scrubBar.max = 1000;
-    scrubBar.value = dur > 0 ? Math.round((time / dur) * 1000) : 0;
+    scrubBar.max = Math.max(1, Math.round(dur * SEQ_FPS)); // frame units
+    if (scrubBar.step !== '1') scrubBar.step = '1';
+    scrubBar.value = time * SEQ_FPS;
   }
   frameCounter.textContent = previewTimeUnit === 'seconds'
     ? `${time.toFixed(2)}s / ${dur.toFixed(2)}s`
@@ -2412,11 +2464,10 @@ function togglePlay() {
 // bubble-phase keydown handlers even get a chance to react — this sidesteps any focus-timing
 // ambiguity entirely instead of relying on stopPropagation ordering.
 window.addEventListener('keydown', ev => {
-  const tag = (ev.target && ev.target.tagName) || '';
-  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (isTypingTarget(ev.target)) return;
   // Focus in the "Thứ tự vẽ" panel: Delete removes the selected skeletons from the canvas (that
   // panel lists canvas skeletons), never the Json List entries.
-  if ((ev.key === 'Delete' || ev.key === 'Backspace') && ev.target && ev.target.closest && ev.target.closest('#order-panel')) {
+  if ((ev.key === 'Delete' || ev.key === 'Backspace') && ev.target && ev.target.closest && ev.target.closest('#fpanel-order')) {
     ev.preventDefault();
     ev.stopPropagation();
     deleteSelectedInstances();
@@ -2430,8 +2481,7 @@ window.addEventListener('keydown', ev => {
 }, true);
 
 window.addEventListener('keydown', ev => {
-  const tag = (ev.target && ev.target.tagName) || '';
-  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (isTypingTarget(ev.target)) return;
 
   if ((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && ev.key.toLowerCase() === 'z') {
     ev.preventDefault();

@@ -79,9 +79,11 @@
   }
   function place(p) {
     const s = state[p.dataset.panel] || {};
-    // default: top-right, just left of the Properties column
-    const x = s.x != null ? s.x : window.innerWidth - p.offsetWidth - 300;
-    const y = s.y != null ? s.y : HEADER_H + 70;
+    // default: data-default-x / -y on the section, else top-right just left of the Properties column
+    const dx = p.dataset.defaultX != null ? Number(p.dataset.defaultX) : window.innerWidth - p.offsetWidth - 300;
+    const dy = p.dataset.defaultY != null ? Number(p.dataset.defaultY) : HEADER_H + 70;
+    const x = s.x != null ? s.x : dx;
+    const y = s.y != null ? s.y : dy;
     const c = clampInto(p, x, y);
     p.style.left = c.x + 'px';
     p.style.top = c.y + 'px';
@@ -110,7 +112,8 @@
     p.setAttribute('aria-label', p.dataset.title);
     p.querySelector('.fpanel-close').addEventListener('click', () => close(p));
     p.addEventListener('pointerdown', () => bringToFront(p));
-    p.addEventListener('keydown', e => e.stopPropagation()); // typing in a panel never triggers app shortcuts
+    // typing into a text field in a panel never triggers app shortcuts (Space / D / Q / E…)
+    p.addEventListener('keydown', e => { if (e.target.matches('input[type="text"], input:not([type]), textarea')) e.stopPropagation(); });
 
     // drag by the title bar
     const head = p.querySelector('.fpanel-head');
@@ -139,7 +142,9 @@
       window.addEventListener('pointerup', up);
     });
 
-    if ((state[p.dataset.panel] || {}).open) { p.hidden = false; place(p); bringToFront(p); }
+    const saved = state[p.dataset.panel];
+    const startOpen = saved && saved.open != null ? saved.open : p.dataset.defaultOpen === '1';
+    if (startOpen) { p.hidden = false; place(p); bringToFront(p); }
   });
 
   // keep open panels inside the window when it is resized

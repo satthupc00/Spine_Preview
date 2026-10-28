@@ -6,7 +6,7 @@
 // selectInstance, pushUndoSnapshot, stage, activeTab.
 // ---------------------------------------------------------------------------
 (() => {
-  const panel = document.getElementById('order-panel');
+  const panel = document.getElementById('fpanel-order'); // floating panel (Windows menu)
   const list = document.getElementById('order-list');
   if (!panel || !list) return;
   list.tabIndex = 0; // takes keyboard focus on click so Delete removes the selected skeletons (renderer.js)
@@ -33,11 +33,23 @@
       row.className = 'order-row' + (selection.includes(inst.id) ? ' selected' : '');
       row.dataset.id = inst.id;
       row.title = i === 0 ? 'Vẽ trên cùng · giữ và kéo để đổi thứ tự' : 'Giữ và kéo để đổi thứ tự vẽ';
-      row.innerHTML = `<span class="order-grip">${GRIP}</span><span class="order-name"></span><span class="order-idx">${rows.length - i}</span>`;
+      row.innerHTML = `<span class="order-grip">${GRIP}</span><span class="order-name"></span><span class="order-idx">${rows.length - i}</span><button type="button" class="row-x" title="Xóa skeleton này khỏi khung Preview (Ctrl+Z để hoàn tác)" aria-label="Xóa">✕</button>`;
       row.querySelector('.order-name').textContent = inst.name;
+      row.querySelector('.row-x').addEventListener('pointerdown', e => e.stopPropagation()); // not a drag
+      row.querySelector('.row-x').addEventListener('click', e => { e.stopPropagation(); removeOne(inst); });
       row.addEventListener('pointerdown', ev => onDown(ev, row, inst));
       list.appendChild(row);
     });
+  }
+
+  // ✕ on a row: remove just that skeleton from the canvas (undoable), keep the rest of the selection.
+  function removeOne(inst) {
+    pushUndoSnapshot();
+    destroyInstance(inst);
+    instances = instances.filter(i => i !== inst);
+    selection = selection.filter(id => id !== inst.id);
+    updatePropertiesFromSelection();
+    lastSig = '';
   }
 
   function signature() {
@@ -46,7 +58,7 @@
 
   // Keep in sync with whatever else changes the canvas (drop, delete, undo, + / -, selection).
   function watch() {
-    panel.hidden = activeTab !== 'preview';
+    panel.classList.toggle('off-tab', activeTab !== 'preview');
     if (!drag) {
       const sig = signature();
       if (sig !== lastSig) { lastSig = sig; render(); }

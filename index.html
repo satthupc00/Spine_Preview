@@ -32,10 +32,6 @@
         </div>
         <div id="json-marquee-box"></div>
       </div>
-      <div id="order-panel" hidden>
-        <div class="panel-header order-header" title="Dòng trên cùng được vẽ đè lên các dòng bên dưới. Giữ và kéo một dòng để đổi thứ tự, Delete để xóa skeleton đang chọn, Ctrl+Z để hoàn tác."><span>Thứ tự vẽ</span><small>kéo để đổi</small></div>
-        <div id="order-list"></div>
-      </div>
     </div>
 
     <div id="preview-panel" class="panel">
@@ -162,6 +158,14 @@
 
 
   <!-- Floating tool panels, opened from the header "Windows" menu (panels.js) -->
+  <section class="fpanel" id="fpanel-order" data-panel="order" data-title="Thứ tự vẽ" data-default-open="1" data-default-x="252" data-default-y="196" hidden>
+    <header class="fpanel-head" title="Dòng trên cùng được vẽ đè lên các dòng bên dưới. Giữ và kéo một dòng để đổi thứ tự, Delete hoặc ✕ để xóa skeleton, Ctrl+Z để hoàn tác."><span class="fpanel-title">Thứ tự vẽ</span><button type="button" class="fpanel-close" title="Đóng (vẫn mở lại được trong Windows)" aria-label="Đóng">✕</button></header>
+    <div class="fpanel-body order-body">
+      <div class="order-hint">Trên cùng = vẽ đè lên · giữ và kéo để đổi</div>
+      <div id="order-list"></div>
+    </div>
+  </section>
+
   <section class="fpanel" id="fpanel-checklist" data-panel="checklist" data-title="Checklist" hidden>
     <header class="fpanel-head"><span class="fpanel-title">Checklist</span><button type="button" class="fpanel-close" title="Đóng (vẫn mở lại được trong Windows)" aria-label="Đóng">✕</button></header>
     <div class="fpanel-body" id="qa-card">
