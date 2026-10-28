@@ -57,7 +57,7 @@
           <div class="empty-title">Kéo file .json vào đây</div>
           <div class="empty-sub">Hoặc kéo skeleton từ Json List bên trái. Spine 3.7.94, kèm .atlas + .png cùng thư mục.</div>
           <div class="empty-keys">
-            <span><kbd>Space</kbd>Play/Pause</span><span><kbd>Q</kbd><kbd>E</kbd>Frame đầu / cuối</span>
+            <span><kbd>Space</kbd><kbd>D</kbd>Play/Pause</span><span><kbd>Q</kbd><kbd>E</kbd>Frame đầu / cuối</span>
             <span><kbd>Lăn chuột</kbd>Zoom</span><span><kbd>Ctrl</kbd><kbd>Z</kbd>Hoàn tác</span><span><kbd>Delete</kbd>Xóa</span>
           </div>
         </div>
@@ -66,8 +66,8 @@
       </div>
 
       <div id="scrub-bar-wrap">
-        <button id="scrub-play-btn" class="icon-btn" title="Play/Pause (Space)">▶</button>
-        <input type="range" id="scrub-bar" min="0" max="1000" value="0" step="1">
+        <button id="scrub-play-btn" class="icon-btn" title="Play/Pause (Space hoặc D)">▶</button>
+        <input type="range" id="scrub-bar" min="0" max="1000" value="0" step="1" title="Kéo để tua theo từng frame · giữ Shift để tua mượt">
         <span id="frame-counter">0 / 0</span>
         <button id="scrub-unit-btn" class="icon-btn" title="Đổi hiển thị Frame/Giây">F</button>
       </div>
@@ -76,12 +76,12 @@
         <div id="seq-vresize" title="Kéo để đổi chiều cao thanh timeline"></div>
         <div id="seq-ruler-row">
           <div id="seq-ruler-spacer">
-            <button id="seq-play-btn" class="icon-btn" title="Play/Pause (Space)">▶</button>
+            <button id="seq-play-btn" class="icon-btn" title="Play/Pause (Space hoặc D)">▶</button>
             <button id="seq-loop-btn" class="seq-loop-toggle active" title="Bật/tắt lặp lại (loop)"><span class="seq-loop-check">✓</span> Loop</button>
             <button id="seq-loop-local-btn" class="seq-loop-toggle" title="Loop Locally: mỗi layer tự lặp lại hết danh sách anim của nó, không phụ thuộc độ dài timeline chung, giống mỗi layer là 1 prefab tự loop"><span class="seq-loop-check">✓</span> Loop Locally</button>
             <button id="seq-snap-btn" class="seq-loop-toggle seq-snap-btn" aria-label="Xếp sát" title="Xếp sát: kéo mỗi anim dính vào mép cuối của anim bên trái nó, xóa khoảng trống giữa các anim (chỉ layer đang chọn, chưa chọn layer thì làm cho tất cả). Ctrl+Z để hoàn tác"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2 2v12M14 8H6m3-3-3 3 3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </div>
-          <div id="seq-ruler-scroll"><div id="seq-ruler">
+          <div id="seq-ruler-scroll" title="Kéo để tua theo từng frame · giữ Shift để tua mượt"><div id="seq-ruler">
             <div id="seq-loop-region"></div>
             <div id="seq-loop-start-marker" class="seq-loop-marker" title="Kéo để đổi điểm bắt đầu loop">▶</div>
             <div id="seq-loop-end-marker" class="seq-loop-marker end" title="Kéo để đổi điểm kết thúc loop">◀</div>
@@ -100,27 +100,6 @@
 
     <div id="properties-panel" class="panel">
       <div class="panel-header">Properties</div>
-
-      <div class="prop-section card" id="qa-card">
-        <div class="prop-title qa-title">
-          <span>Checklist</span>
-          <button class="qa-switch" id="qa-switch" role="switch" aria-checked="false" title="Bật/tắt checklist: chấm xanh/đỏ trên từng anim ở tab Preview"></button>
-        </div>
-        <div class="qa-sub">Chấm <span class="qa-green">xanh</span> = đạt hết, <span class="qa-red">đỏ</span> = có mục chưa đạt.</div>
-        <div class="qa-check">
-          <input type="checkbox" id="qa-framematch">
-          <div class="qa-check-body">
-            <label for="qa-framematch">Frame đầu = frame cuối</label>
-            <small>Pose frame đầu và frame cuối trùng tuyệt đối</small>
-            <input type="text" id="qa-framematch-filter" class="qa-filter" placeholder="Lọc tên anim, vd: idle" title="Chỉ kiểm các anim có tên chứa chữ này (để trống = kiểm tất cả)" spellcheck="false">
-          </div>
-        </div>
-        <div class="qa-results">
-          <div class="qa-results-head"><span id="qa-owner"></span><b id="qa-count"></b></div>
-          <div id="qa-rows"></div>
-          <div class="qa-note" id="qa-note"></div>
-        </div>
-      </div>
 
       <div class="prop-section card">
         <div class="prop-title">Background</div>
@@ -181,14 +160,41 @@
 
   </div>
 
+
+  <!-- Floating tool panels, opened from the header "Windows" menu (panels.js) -->
+  <section class="fpanel" id="fpanel-checklist" data-panel="checklist" data-title="Checklist" hidden>
+    <header class="fpanel-head"><span class="fpanel-title">Checklist</span><button type="button" class="fpanel-close" title="Đóng (vẫn mở lại được trong Windows)" aria-label="Đóng">✕</button></header>
+    <div class="fpanel-body" id="qa-card">
+        <div class="qa-title">
+          <span>Bật chấm trên anim</span>
+          <button class="qa-switch" id="qa-switch" role="switch" aria-checked="false" title="Bật/tắt checklist: chấm xanh/đỏ trên từng anim ở tab Preview"></button>
+        </div>
+        <div class="qa-sub">Chấm <span class="qa-green">xanh</span> = đạt hết, <span class="qa-red">đỏ</span> = có mục chưa đạt.</div>
+        <div class="qa-check">
+          <input type="checkbox" id="qa-framematch">
+          <div class="qa-check-body">
+            <label for="qa-framematch">Frame đầu = frame cuối</label>
+            <small>Pose frame đầu và frame cuối trùng tuyệt đối</small>
+            <input type="text" id="qa-framematch-filter" class="qa-filter" placeholder="Lọc tên anim, vd: idle" title="Chỉ kiểm các anim có tên chứa chữ này (để trống = kiểm tất cả)" spellcheck="false">
+          </div>
+        </div>
+        <div class="qa-results">
+          <div class="qa-results-head"><span id="qa-owner"></span><b id="qa-count"></b></div>
+          <div id="qa-rows"></div>
+          <div class="qa-note" id="qa-note"></div>
+        </div>
+    </div>
+  </section>
+
   <footer class="status">
-    <span class="status-hint"><kbd>Space</kbd> Play/Pause · <kbd>Q</kbd>/<kbd>Home</kbd> Frame đầu · <kbd>E</kbd> Frame cuối · <kbd>Ctrl</kbd>+<kbd>Z</kbd> Hoàn tác · <kbd>Lăn chuột</kbd> Zoom · <kbd>Delete</kbd> Xóa json đang chọn</span>
+    <span class="status-hint"><kbd>Space</kbd>/<kbd>D</kbd> Play/Pause · <kbd>Shift</kbd>+kéo Tua mượt · <kbd>Q</kbd>/<kbd>Home</kbd> Frame đầu · <kbd>E</kbd> Frame cuối · <kbd>Ctrl</kbd>+<kbd>Z</kbd> Hoàn tác · <kbd>Lăn chuột</kbd> Zoom · <kbd>Delete</kbd> Xóa json đang chọn</span>
     <span class="credit">Created by Mondiro</span>
   </footer>
   <script src="ui-shell.js"></script>
   <script src="checklist.js"></script>
   <script src="renderer.js"></script>
   <script src="layer-order.js"></script>
+  <script src="panels.js"></script>
   <script src="license-ui.js"></script>
   <script src="ui-fx.js"></script>
 </body>

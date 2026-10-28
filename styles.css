@@ -1092,7 +1092,7 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 .qa-tip-row .no { color: var(--red); }
 .qa-tip-detail { color: var(--text-dim); margin: 2px 0 0 16px; line-height: 1.4; word-break: break-word; }
 
-.prop-title.qa-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.qa-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; font-size: 12.5px; font-weight: 700; }
 .qa-switch {
   position: relative;
   width: 34px; height: 18px;
@@ -1346,3 +1346,80 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 @media (prefers-reduced-motion: reduce) { .order-row { transition: none; } }
 #order-list:focus { outline: none; }
 #order-list:focus-visible { outline: 2px solid var(--red); outline-offset: -2px; border-radius: 6px; }
+
+/* ===== "Windows" menu + floating tool panels (panels.js) ===== */
+.menu-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font: 600 12px "Segoe UI", system-ui, sans-serif;
+  cursor: pointer;
+}
+.menu-btn svg { width: 15px; height: 15px; }
+.menu-btn .chev { width: 13px; height: 13px; color: var(--text-dim); transition: transform var(--t-med) var(--ease-out); }
+.menu-btn:hover { border-color: var(--red); transform: translateY(-1px); }
+.menu-btn.open { border-color: var(--red); background: var(--hover); }
+.menu-btn.open .chev { transform: rotate(180deg); }
+
+.win-menu {
+  position: fixed; z-index: 6500;
+  min-width: 210px;
+  padding: 6px;
+  background: #15171B;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .5);
+  animation: win-menu-in .18s var(--ease-out) both;
+}
+@keyframes win-menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.win-menu-title { font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; padding: 4px 8px 6px; }
+.win-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0; border-radius: 6px;
+  background: transparent; color: var(--text);
+  font: 600 12.5px "Segoe UI", system-ui, sans-serif;
+  text-align: left; cursor: pointer;
+}
+.win-menu-item:hover { background: var(--hover); transform: none; }
+.win-menu-item .tick { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid #5A5F69; display: grid; place-items: center; flex: 0 0 auto; }
+.win-menu-item.on .tick { background: var(--red); border-color: var(--red); }
+.win-menu-item.on .tick::after { content: ''; width: 7px; height: 4px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
+
+.fpanel {
+  position: fixed; z-index: 900;
+  width: 290px;
+  max-height: calc(100vh - 120px);
+  display: flex; flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .5);
+}
+.fpanel.opening { animation: fx-dialog .3s var(--ease-spring) both; }
+.fpanel.closing { animation: fx-fade-out .14s ease both; }
+.fpanel.moving { box-shadow: 0 18px 44px rgba(0, 0, 0, .6); opacity: .96; }
+.fpanel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-card);
+  border-radius: 8px 8px 0 0;
+  cursor: move;
+  user-select: none;
+}
+.fpanel.moving .fpanel-head { cursor: grabbing; }
+.fpanel-title { font-size: 13px; font-weight: 700; color: #fff; }
+.fpanel-close {
+  width: 24px; height: 24px; padding: 0;
+  display: grid; place-items: center;
+  border: 0; border-radius: 5px;
+  background: transparent; color: var(--text-dim);
+  font-size: 12px; cursor: pointer;
+}
+.fpanel-close:hover { background: var(--red); color: #fff; }
+.fpanel-body { padding: 12px; overflow-y: auto; min-height: 0; }

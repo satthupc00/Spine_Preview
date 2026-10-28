@@ -1750,8 +1750,13 @@ window.addEventListener('mouseup', () => {
 });
 
 // ---- ruler scrub + loop start/end markers ------------------------------------------------
-function seqSetPlayheadFromClientX(clientX) {
-  seqPlayhead = Math.max(0, clientXToSeqTime(clientX));
+// Dragging a playhead snaps to whole frames (30 fps); hold Shift for the old smooth scrub.
+function snapToFrame(t, smooth, fps = SEQ_FPS) {
+  return smooth ? t : Math.round(t * fps) / fps;
+}
+
+function seqSetPlayheadFromClientX(clientX, smooth) {
+  seqPlayhead = Math.max(0, snapToFrame(clientXToSeqTime(clientX), smooth));
   updateSeqPlayheadUI();
 }
 seqRulerScrollEl.addEventListener('mousedown', ev => {
@@ -1759,9 +1764,9 @@ seqRulerScrollEl.addEventListener('mousedown', ev => {
   if (ev.target === seqLoopStartMarkerEl || ev.target === seqLoopEndMarkerEl) return; // marker handles its own drag
   seqScrubbing = true;
   seqPlaying = false;
-  seqSetPlayheadFromClientX(ev.clientX);
+  seqSetPlayheadFromClientX(ev.clientX, ev.shiftKey);
 });
-window.addEventListener('mousemove', ev => { if (seqScrubbing) seqSetPlayheadFromClientX(ev.clientX); });
+window.addEventListener('mousemove', ev => { if (seqScrubbing) seqSetPlayheadFromClientX(ev.clientX, ev.shiftKey); });
 window.addEventListener('mouseup', () => { seqScrubbing = false; });
 
 seqLoopStartMarkerEl.addEventListener('mousedown', ev => { if (ev.button !== 0) return; ev.stopPropagation(); seqDraggingLoopMarker = 'start'; });
@@ -2326,6 +2331,8 @@ function scrubTargets() {
 }
 
 let scrubDragging = false; // true while the Preview scrub bar is held, so playback doesn't fight the drag
+let scrubSmooth = false;   // Shift held while dragging the scrub bar = no frame snapping
+['pointerdown', 'pointermove'].forEach(t => scrubBar.addEventListener(t, ev => { scrubSmooth = ev.shiftKey; }));
 scrubBar.addEventListener('mousedown', () => {
   scrubDragging = true;
   const targets = scrubTargets();
@@ -2336,7 +2343,10 @@ scrubBar.addEventListener('input', () => {
   const targets = scrubTargets();
   if (!targets) return;
   const dur = SpineStage.animationDuration(targets[0].spine);
-  if (dur > 0) targets.forEach(i => SpineStage.seek(i.spine, (scrubBar.value / 1000) * dur));
+  if (dur <= 0) return;
+  let t = snapToFrame((scrubBar.value / 1000) * dur, scrubSmooth);
+  if (t >= dur) t = Math.max(0, dur - LAST_FRAME_EPS); // a looping track would wrap the exact end back to frame 0
+  targets.forEach(i => SpineStage.seek(i.spine, t));
 });
 scrubPlayBtn.addEventListener('click', () => togglePlay());
 
@@ -2429,7 +2439,8 @@ window.addEventListener('keydown', ev => {
     return;
   }
 
-  if (ev.code === 'Space') {
+  // Space or D: play / pause
+  if (ev.code === 'Space' || (ev.code === 'KeyD' && !ev.ctrlKey && !ev.altKey && !ev.metaKey)) {
     ev.preventDefault();
     if (isTimelineTab()) seqPlaying = !seqPlaying;
     else togglePlay();
