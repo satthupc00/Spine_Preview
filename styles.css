@@ -1376,20 +1376,21 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
   animation: win-menu-in .18s var(--ease-out) both;
 }
 @keyframes win-menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-.win-menu-title { font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; padding: 4px 8px 6px; }
+.win-menu-sep { height: 1px; margin: 5px 4px; background: var(--line); }
 .win-menu-item {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 10px;
   width: 100%;
-  padding: 7px 8px;
+  padding: 7px 10px 7px 8px;
   border: 0; border-radius: 6px;
   background: transparent; color: var(--text);
-  font: 600 12.5px "Segoe UI", system-ui, sans-serif;
+  font: 500 13px "Segoe UI", system-ui, sans-serif;
   text-align: left; cursor: pointer;
 }
 .win-menu-item:hover { background: var(--hover); transform: none; }
-.win-menu-item .tick { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid #5A5F69; display: grid; place-items: center; flex: 0 0 auto; }
-.win-menu-item.on .tick { background: var(--red); border-color: var(--red); }
-.win-menu-item.on .tick::after { content: ''; width: 7px; height: 4px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
+.win-menu-item .tick { width: 14px; flex: 0 0 auto; color: var(--red); font-weight: 700; text-align: center; }
+.win-menu-item.on .tick::before { content: '✓'; }
+.dock-btn.off { color: var(--text-dim); }
+#json-list-panel.dock-off, #properties-panel.dock-off { display: none; }
 
 .fpanel {
   position: fixed; z-index: 900;

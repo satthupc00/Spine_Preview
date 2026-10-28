@@ -4,7 +4,7 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
-# v2.10.0
-- Thanh tua giờ nhảy đúng từng frame khi kéo (giữ Shift để tua mượt), và phím Space/D vẫn chạy ngay sau khi kéo
-- Thêm nút ✕ để xóa nhanh ở Json List và Thứ tự vẽ (Ctrl+Z để hoàn tác)
-- Thứ tự vẽ thành bảng nổi riêng, mở/đóng từ menu Windows
+# v2.11.0
+- Menu Windows mới: chia nhóm bảng cố định và bảng nổi, dấu ✓ đỏ cho bảng đang hiện
+- Ẩn/hiện Json List và Properties bằng 2 nút cạnh Windows để khung Preview rộng hơn
+- F6 mở/đóng Thứ tự vẽ, F7 mở/đóng Checklist

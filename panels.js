@@ -1,6 +1,10 @@
 // ---------------------------------------------------------------------------
 // "Windows" menu + floating tool panels.
 //
+// Menu (Motion Craft style): the docked columns (Json List, Properties) first, a divider, then the
+// floating panels as "Name (nổi) · F6". A red ✓ marks what is showing. Two icon buttons next to
+// the menu show / hide the left and right columns.
+//
 // Every <section class="fpanel" data-panel="id" data-title="…"> in index.html becomes a floating
 // window that is listed in the header "Windows" menu: pick it to open / close, drag its title bar
 // to move it, ✕ to close. Open state and position are remembered between sessions. To add a new
@@ -29,24 +33,71 @@
   const tools = document.getElementById('top-tools');
   tools.insertBefore(btn, tools.firstChild);
 
+  // quick show / hide buttons for the left (Json List) and right (Properties) columns
+  const ICON_LEFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>';
+  const ICON_RIGHT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>';
+  const dockBtns = [];
+  function addDockBtn(id, icon, name) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ibtn dock-btn';
+    b.innerHTML = icon;
+    b.dataset.dock = id;
+    b.dataset.name = name;
+    tools.insertBefore(b, (dockBtns[dockBtns.length - 1] || btn).nextSibling);
+    dockBtns.push(b);
+  }
+  addDockBtn('json', ICON_LEFT, 'Json List');
+  addDockBtn('props', ICON_RIGHT, 'Properties');
+  function syncDockBtns() {
+    dockBtns.forEach(b => {
+      const d = docks.find(x => x.id === b.dataset.dock);
+      if (!d) { b.hidden = true; return; }
+      const on = dockOpen(d);
+      b.classList.toggle('off', !on);
+      b.title = `${on ? 'Ẩn' : 'Hiện'} ${b.dataset.name}`;
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+
   const menu = document.createElement('div');
   menu.className = 'win-menu';
   menu.setAttribute('role', 'menu');
   menu.hidden = true;
   document.body.append(menu);
 
+  // Docked columns of the main layout, listed above the floating panels (Motion Craft style menu).
+  const docks = [
+    { id: 'json', title: 'Json List', el: document.getElementById('json-list-panel') },
+    { id: 'props', title: 'Properties', el: document.getElementById('properties-panel') }
+  ].filter(d => d.el);
+  const dockOpen = d => !d.el.classList.contains('dock-off');
+  function setDock(d, on) {
+    d.el.classList.toggle('dock-off', !on);
+    (state['dock-' + d.id] = state['dock-' + d.id] || {}).open = on;
+    save();
+    syncDockBtns();
+  }
+  docks.forEach(d => { const s0 = state['dock-' + d.id]; if (s0 && s0.open === false) d.el.classList.add('dock-off'); });
+
+  function menuItem(label, on, onClick) {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'win-menu-item' + (on ? ' on' : '');
+    item.setAttribute('role', 'menuitemcheckbox');
+    item.setAttribute('aria-checked', String(on));
+    item.innerHTML = '<span class="tick" aria-hidden="true"></span><span class="lbl"></span>';
+    item.querySelector('.lbl').textContent = label;
+    item.addEventListener('click', () => { onClick(); closeMenu(); });
+    return item;
+  }
   function renderMenu() {
-    menu.innerHTML = '<div class="win-menu-title">Bảng công cụ</div>';
+    menu.replaceChildren();
+    docks.forEach(d => menu.append(menuItem(d.title, dockOpen(d), () => setDock(d, !dockOpen(d)))));
+    if (docks.length) menu.append(Object.assign(document.createElement('div'), { className: 'win-menu-sep' }));
     panels.forEach(p => {
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'win-menu-item' + (p.hidden ? '' : ' on');
-      item.setAttribute('role', 'menuitemcheckbox');
-      item.setAttribute('aria-checked', String(!p.hidden));
-      item.innerHTML = '<span class="tick"></span><span class="lbl"></span>';
-      item.querySelector('.lbl').textContent = p.dataset.title;
-      item.addEventListener('click', () => { toggle(p); closeMenu(); });
-      menu.append(item);
+      const label = `${p.dataset.title} (nổi)` + (p.dataset.key ? ` · ${p.dataset.key}` : '');
+      menu.append(menuItem(label, !p.hidden, () => toggle(p)));
     });
   }
   function openMenu() {
@@ -68,6 +119,7 @@
   const onOutside = e => { if (!menu.contains(e.target) && !btn.contains(e.target)) closeMenu(); };
   const onEsc = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeMenu(); } };
   btn.addEventListener('click', () => (menu.hidden ? openMenu() : closeMenu()));
+  dockBtns.forEach(b => b.addEventListener('click', () => { const d = docks.find(x => x.id === b.dataset.dock); if (d) setDock(d, !dockOpen(d)); }));
 
   // ---- floating panels ----
   function clampInto(p, x, y) {
@@ -145,6 +197,17 @@
     const saved = state[p.dataset.panel];
     const startOpen = saved && saved.open != null ? saved.open : p.dataset.defaultOpen === '1';
     if (startOpen) { p.hidden = false; place(p); bringToFront(p); }
+  });
+
+  syncDockBtns();
+
+  // F-key shortcut on a floating panel (data-key="F6"): open / close it
+  window.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+    const p = panels.find(x => x.dataset.key === e.key);
+    if (!p) return;
+    e.preventDefault();
+    toggle(p);
   });
 
   // keep open panels inside the window when it is resized
