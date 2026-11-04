@@ -4,7 +4,6 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
-# v2.11.0
-- Menu Windows mới: chia nhóm bảng cố định và bảng nổi, dấu ✓ đỏ cho bảng đang hiện
-- Ẩn/hiện Json List và Properties bằng 2 nút cạnh Windows để khung Preview rộng hơn
-- F6 mở/đóng Thứ tự vẽ, F7 mở/đóng Checklist
+# v2.12.0
+- Bấm Ctrl+H để ẩn/hiện khung W×H quanh json đang chọn
+- Khung Preview trống gọn hơn, phím tắt xem ở thanh dưới đáy app
