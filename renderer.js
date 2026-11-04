@@ -2189,7 +2189,7 @@ function tick(now) {
       instances.forEach(inst => {
         try {
           inst.bounds = stage.worldBoundsOf(inst.spine);
-          if (selection.includes(inst.id)) {
+          if (showBoxes && selection.includes(inst.id)) {
             stage.drawSelectionBox(inst.spine, inst.exportW, inst.exportH, strokeColor);
           }
         } catch (e) {
@@ -2217,7 +2217,7 @@ function tick(now) {
       });
       if (seqSelectedLayerId != null) {
         const sel = seqLayers.find(l => l.id === seqSelectedLayerId);
-        if (sel && sel.spine && sel.spine.visible) {
+        if (showBoxes && sel && sel.spine && sel.spine.visible) {
           try { stage.drawBoundsSelection(sel.spine, strokeColor); } catch (e) { /* non-critical overlay */ }
         }
       }
@@ -2480,8 +2480,20 @@ window.addEventListener('keydown', ev => {
   }
 }, true);
 
+// Ctrl+H: show / hide the W×H stroke boxes drawn around selected skeletons (remembered).
+let showBoxes = true;
+try { showBoxes = localStorage.getItem('spv-show-boxes') !== '0'; } catch (e) { /* default: shown */ }
+
 window.addEventListener('keydown', ev => {
   if (isTypingTarget(ev.target)) return;
+
+  if ((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && !ev.altKey && ev.code === 'KeyH') {
+    ev.preventDefault();
+    showBoxes = !showBoxes;
+    try { localStorage.setItem('spv-show-boxes', showBoxes ? '1' : '0'); } catch (e) { /* not critical */ }
+    if (window.MondiroUI) MondiroUI.toast(showBoxes ? 'Đang hiện khung W×H (Ctrl+H để ẩn)' : 'Đã ẩn khung W×H (Ctrl+H để hiện)');
+    return;
+  }
 
   if ((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && ev.key.toLowerCase() === 'z') {
     ev.preventDefault();
