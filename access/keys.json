@@ -30,7 +30,8 @@
       "note": "Bi Bot",
       "hash": "58be39a80f881b21856f63677c0e0ce65423a389fd355777d88210c1d67bc47b",
       "active": true,
-      "created": "2026-11-06"
+      "created": "2026-11-06",
+      "maxDevices": 1
     }
   ]
 }
