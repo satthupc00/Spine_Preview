@@ -28,7 +28,8 @@
     nokey: 'Nhập key kích hoạt mà Mondiro gửi cho bạn để bắt đầu dùng app.',
     invalid: 'Key không đúng. Kiểm tra lại hoặc liên hệ Mondiro.',
     revoked: 'Key của máy này đã bị thu hồi. Liên hệ Mondiro nếu cần dùng tiếp.',
-    offline: 'Không kết nối được để kiểm tra key. Hãy kiểm tra mạng rồi thử lại.'
+    offline: 'Không kết nối được để kiểm tra key. Hãy kiểm tra mạng rồi thử lại.',
+    full: 'Key này đã dùng đủ số máy cho phép, không đăng nhập thêm máy này được. Liên hệ Mondiro để gỡ bớt máy cũ.'
   };
 
   const lockMsg = el('div', { class: 'lock-msg', text: 'Đang kiểm tra quyền sử dụng...' });
@@ -55,7 +56,9 @@
     }
     lockOverlay.hidden = false;
     keyForm.hidden = false;
-    lockMsg.textContent = REASONS[(status && status.reason) || 'nokey'] || REASONS.nokey;
+    lockMsg.textContent = status && status.reason === 'full' && status.max
+      ? `Key này đã dùng đủ ${status.max} máy, không đăng nhập thêm máy này được. Liên hệ Mondiro để gỡ bớt máy cũ.`
+      : REASONS[(status && status.reason) || 'nokey'] || REASONS.nokey;
     lockMsg.classList.toggle('error', !!status && status.reason !== 'nokey');
     setTimeout(() => keyInput.focus(), 0);
   }
@@ -174,7 +177,8 @@
           el('span', { class: 'admin-badge' + (active ? '' : ' off'), text: active ? 'Đang dùng' : 'Đã thu hồi' })
         ]),
         el('div', { class: 'admin-row-meta', text: [k.created, k.note].filter(Boolean).join(' · ') }),
-        keyLine
+        keyLine,
+        seatBlock(k)
       ]),
       el('button', {
         class: 'text-btn', text: active ? 'Thu hồi' : 'Mở lại',
@@ -191,6 +195,52 @@
     ]);
   }
 
+  // "Máy: 2/3" line + expandable list of the machines using this key, with a limit field.
+  const openSeats = new Set();
+  const fmtDate = t => t ? new Date(t).toLocaleDateString('vi-VN') : '';
+  function seatBlock(k) {
+    const max = Number(k.maxDevices) || 0;
+    const devs = k.devices; // null = machine limits not connected
+    const used = devs ? devs.length : null;
+    const full = max && used != null && used >= max;
+    const label = devs == null
+      ? (max ? `Tối đa ${max} máy` : 'Không giới hạn máy')
+      : (max ? `Máy: ${Math.min(used, max)}/${max}` : `Máy: ${used} · không giới hạn`) + (max && used > max ? ` · ${used - max} máy bị chặn` : '');
+    const toggleBtn = el('button', { class: 'text-btn', text: openSeats.has(k.id) ? 'Thu gọn' : 'Quản lý máy' });
+    const head = el('div', { class: 'admin-seat-head' }, [el('span', { class: 'admin-seat-count' + (full ? ' full' : ''), text: label }), toggleBtn]);
+    const box = el('div', { class: 'admin-seat-box' });
+    box.hidden = !openSeats.has(k.id);
+    toggleBtn.addEventListener('click', () => {
+      if (openSeats.has(k.id)) openSeats.delete(k.id); else openSeats.add(k.id);
+      box.hidden = !openSeats.has(k.id);
+      toggleBtn.textContent = box.hidden ? 'Quản lý máy' : 'Thu gọn';
+    });
+
+    const maxInput = el('input', { type: 'number', min: '0', max: '99', class: 'lock-input admin-seat-max', value: String(max), title: '0 = không giới hạn' });
+    const saveBtn = el('button', { class: 'text-btn', text: 'Lưu', onclick: () => busy(async () => showList(await call('admin-set-max', k.id, Number(maxInput.value) || 0)),
+      (Number(maxInput.value) || 0) > 0 ? `Key của ${k.name} giờ dùng được tối đa ${Number(maxInput.value)} máy.` : `Key của ${k.name} không giới hạn số máy.`) });
+    maxInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveBtn.click(); });
+    box.append(el('div', { class: 'admin-seat-limit' }, [el('span', { text: 'Số máy tối đa' }), maxInput, saveBtn, el('span', { class: 'admin-hint', text: '0 = không giới hạn' })]));
+
+    if (devs == null) {
+      box.append(el('div', { class: 'admin-hint', text: 'Chưa kết nối Firebase nên chưa đếm được máy.' }));
+    } else if (!devs.length) {
+      box.append(el('div', { class: 'admin-hint', text: 'Chưa có máy nào đăng nhập bằng key này.' }));
+    } else {
+      devs.forEach((d, i) => {
+        const blocked = max && i >= max;
+        box.append(el('div', { class: 'admin-seat-dev' + (blocked ? ' blocked' : '') }, [
+          el('span', { class: 'admin-seat-name', text: d.name || d.id }),
+          el('span', { class: 'admin-seat-date', text: (blocked ? 'Bị chặn · ' : '') + 'Lần cuối ' + fmtDate(d.seen) }),
+          el('button', { class: 'text-btn danger', text: 'Gỡ', title: 'Gỡ máy này khỏi key để nhường chỗ cho máy khác',
+            onclick: () => MondiroUI.confirm({ title: `Gỡ máy "${d.name || d.id}"?`, message: 'Máy này sẽ bị khóa nếu key đã đủ máy. Nếu còn chỗ, máy đó đăng nhập lại được.', okText: 'Gỡ máy', danger: true })
+              .then(ok => ok && busy(async () => showList(await call('admin-remove-device', k.id, d.id)), `Đã gỡ máy ${d.name || ''}.`)) })
+        ]));
+      });
+    }
+    return el('div', { class: 'admin-seat' }, [head, box]);
+  }
+
   let listEl = null;
   function showList(keys) {
     if (!listEl) return;
@@ -200,19 +250,21 @@
   async function renderList() {
     const nameInput = el('input', { type: 'text', class: 'lock-input', placeholder: 'Tên đồng nghiệp' });
     const noteInput = el('input', { type: 'text', class: 'lock-input', placeholder: 'Ghi chú (không bắt buộc)' });
+    const maxInput = el('input', { type: 'number', min: '0', max: '99', value: '1', class: 'lock-input', title: 'Số máy được dùng key này (0 = không giới hạn)' });
     const addBtn = el('button', { class: 'primary-btn', text: '+ Tạo key mới' });
     addBtn.addEventListener('click', () => {
       const name = nameInput.value.trim();
       busy(async () => {
-        const { keys } = await call('admin-add', name, noteInput.value);
+        const { keys } = await call('admin-add', name, noteInput.value, Number(maxInput.value) || 0);
         nameInput.value = '';
         noteInput.value = '';
+        maxInput.value = '1';
         showList(keys);
       }, `Đã tạo key cho ${name}. Bấm "Hiện" hoặc "Copy" ở dòng của họ để lấy key.`);
     });
     listEl = el('div', { class: 'admin-list' }, [el('div', { class: 'admin-hint', text: 'Đang tải danh sách...' })]);
     adminBody.replaceChildren(
-      el('div', { class: 'admin-add' }, [nameInput, noteInput, addBtn]),
+      el('div', { class: 'admin-add' }, [nameInput, noteInput, el('label', { class: 'admin-add-max' }, [el('span', { text: 'Số máy' }), maxInput]), addBtn]),
       listEl,
       el('div', { class: 'admin-foot' }, [
         el('span', { class: 'admin-hint', text: 'Lưu ý: tên và ghi chú hiển thị công khai trên GitHub, key thì không.' }),

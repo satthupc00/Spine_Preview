@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Mondiro Spine Preview: các máy đang dùng mỗi key (tên document = id của key, vd k_1a2b3c4d)
+    match /spv_seats/{keyId} {
+      allow read: if true;
+      allow create, update: if keyId.matches('k_[0-9a-f]{8}')
+        && request.resource.data.keys().hasOnly(['devices'])
+        && (!('devices' in request.resource.data) || request.resource.data.devices.size() <= 100);
+      allow delete: if false;
+    }
+  }
+}

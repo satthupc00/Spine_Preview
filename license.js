@@ -7,7 +7,9 @@
 //   - asks for a key once, checks it against the list and remembers it,
 //   - re-checks the list at startup and every RECHECK_MS while running, and locks itself as soon
 //     as its key is revoked (active:false) or deleted,
-//   - keeps working offline for up to OFFLINE_GRACE_DAYS since its last successful check.
+//   - keeps working offline for up to OFFLINE_GRACE_DAYS since its last successful check,
+//   - when its key has a machine limit (maxDevices), signs this machine in to the key's seat list
+//     in Firestore; the earliest maxDevices machines may use it, any other gets reason 'full'.
 //
 // The owner manages the list from the Admin panel inside the app. Admin logs in with a GitHub
 // token that can write to the repo; edits are committed straight to access/keys.json through the
@@ -16,6 +18,7 @@
 const { app, ipcMain, net, safeStorage } = require('electron');
 const crypto = require('crypto');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const OWNER = 'satthupc00';
@@ -28,10 +31,16 @@ const API = 'https://api.github.com';
 const OFFLINE_GRACE_DAYS = 7;
 const RECHECK_MS = 15 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 10000;
+// Firestore project that holds the seat lists (collection spv_seats, one document per key id,
+// field devices = { <deviceId>: { name, first, seen } }). Empty = machine limits are off.
+const FIREBASE_PROJECT = '';
+const SEATS_URL = () => `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/spv_seats`;
+const SEEN_EVERY_MS = 12 * 3600 * 1000; // refresh a machine's "last seen" at most this often
 const KEY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid typos
 
 const licenseFile = () => path.join(app.getPath('userData'), 'license.json');
 const adminFile = () => path.join(app.getPath('userData'), 'admin.dat');
+const deviceFile = () => path.join(app.getPath('userData'), 'device.json');
 
 // ---- helpers ---------------------------------------------------------------
 
@@ -86,6 +95,87 @@ function writeAdmin(data) {
   fs.writeFileSync(adminFile(), buf);
 }
 
+// ---- seats: which machines use a key ----------------------------------------
+
+// Stable id for this computer: Windows MachineGuid (survives reinstalling the app), else a random
+// id kept in userData. Hashed, so the raw machine id never leaves the computer.
+let deviceIdCache = null;
+function deviceId() {
+  if (deviceIdCache) return deviceIdCache;
+  let raw = null;
+  if (process.platform === 'win32') {
+    try {
+      const out = require('child_process').execSync('reg query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', { encoding: 'utf-8', windowsHide: true, timeout: 5000 });
+      const m = out.match(/MachineGuid\s+REG_SZ\s+(\S+)/i);
+      if (m) raw = m[1];
+    } catch (e) { /* fall back to a stored id */ }
+  }
+  if (!raw) {
+    raw = readJson(deviceFile(), {}).id;
+    if (!raw) { raw = crypto.randomBytes(16).toString('hex'); writeJson(deviceFile(), { id: raw }); }
+  }
+  return (deviceIdCache = 'd_' + crypto.createHash('sha256').update('spv-device:' + raw).digest('hex').slice(0, 16));
+}
+
+function deviceName() {
+  let user = '';
+  try { user = os.userInfo().username; } catch (e) { /* no user name */ }
+  return [os.hostname(), user].filter(Boolean).join(' · ');
+}
+
+const seatsOn = () => !!FIREBASE_PROJECT;
+
+// Firestore document -> [{ id, name, first, seen }] sorted oldest first
+function seatDevices(doc) {
+  const f = (doc && doc.fields && doc.fields.devices && doc.fields.devices.mapValue && doc.fields.devices.mapValue.fields) || {};
+  return Object.entries(f).map(([id, v]) => {
+    const g = (v.mapValue && v.mapValue.fields) || {};
+    return { id, name: g.name ? g.name.stringValue : '', first: Number((g.first && g.first.integerValue) || 0), seen: Number((g.seen && g.seen.integerValue) || 0) };
+  }).sort((a, b) => a.first - b.first);
+}
+
+async function readSeat(keyId) {
+  const res = await fetchWithTimeout(`${SEATS_URL()}/${keyId}?t=${Date.now()}`, { cache: 'no-store' });
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return seatDevices(await res.json());
+}
+
+// Write one machine's entry (dev = { name, first, seen }) or remove it (dev = null).
+// devId = null clears the whole list.
+async function writeSeat(keyId, devId, dev) {
+  const field = devId ? `devices.${devId}` : 'devices';
+  const fields = devId && dev ? { devices: { mapValue: { fields: { [devId]: { mapValue: { fields: {
+    name: { stringValue: String(dev.name || '').slice(0, 80) },
+    first: { integerValue: String(dev.first) },
+    seen: { integerValue: String(dev.seen) }
+  } } } } } } } : {};
+  const res = await fetchWithTimeout(`${SEATS_URL()}/${keyId}?updateMask.fieldPaths=${encodeURIComponent(field)}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', body: JSON.stringify({ fields })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+}
+
+// Take (or keep) a seat for this machine. { ok:true } or { ok:false, reason:'full', max }.
+// Throws when the seat list can't be reached.
+async function claimSeat(entry) {
+  const max = Number(entry.maxDevices) || 0;
+  if (!seatsOn() || max <= 0) return { ok: true };
+  const me = deviceId();
+  const devices = await readSeat(entry.id);
+  const rank = devices.findIndex(d => d.id === me);
+  const now = Date.now();
+  if (rank >= 0) {
+    // the earliest `max` machines keep the key, so lowering the limit also takes effect
+    if (rank >= max) return { ok: false, reason: 'full', max };
+    if (now - devices[rank].seen > SEEN_EVERY_MS) writeSeat(entry.id, me, { ...devices[rank], name: deviceName(), seen: now }).catch(() => {});
+    return { ok: true };
+  }
+  if (devices.length >= max) return { ok: false, reason: 'full', max };
+  await writeSeat(entry.id, me, { name: deviceName(), first: now, seen: now });
+  return { ok: true };
+}
+
 // ---- checking this machine's key -------------------------------------------
 
 async function fetchPublicKeyList() {
@@ -118,6 +208,19 @@ async function checkAccess() {
 
   const entry = keys.find(k => k.hash === hashKey(store.key));
   if (entry && entry.active !== false) {
+    let seat;
+    try {
+      seat = await claimSeat(entry);
+    } catch (e) {
+      // seat list unreachable: same offline grace as the key list
+      const graceMs = OFFLINE_GRACE_DAYS * 24 * 3600 * 1000;
+      if (store.lastOkAt && Date.now() - store.lastOkAt < graceMs) return (lastStatus = { ok: true, mode: 'offline', name: entry.name });
+      return (lastStatus = { ok: false, reason: 'offline' });
+    }
+    if (!seat.ok) {
+      writeJson(licenseFile(), { ...store, lastOkAt: 0 });
+      return (lastStatus = seat);
+    }
     writeJson(licenseFile(), { ...store, lastOkAt: Date.now(), name: entry.name });
     return (lastStatus = { ok: true, mode: 'key', name: entry.name });
   }
@@ -136,6 +239,9 @@ async function activate(key) {
   const entry = keys.find(k => k.hash === hashKey(key));
   if (!entry) return { ok: false, reason: 'invalid' };
   if (entry.active === false) return { ok: false, reason: 'revoked' };
+  let seat;
+  try { seat = await claimSeat(entry); } catch (e) { return { ok: false, reason: 'offline' }; }
+  if (!seat.ok) return seat;
   writeJson(licenseFile(), { key: key.trim(), lastOkAt: Date.now(), name: entry.name });
   return (lastStatus = { ok: true, mode: 'key', name: entry.name });
 }
@@ -227,13 +333,58 @@ function rememberKey(id, key) {
   writeAdmin({ ...admin, plainKeys });
 }
 
+// All seat lists at once: { <keyId>: [devices] }, or null when machine limits are off / unreachable.
+async function readAllSeats() {
+  if (!seatsOn()) return null;
+  try {
+    const res = await fetchWithTimeout(`${SEATS_URL()}?pageSize=300&t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const out = {};
+    (data.documents || []).forEach(d => { out[d.name.split('/').pop()] = seatDevices(d); });
+    return out;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Key rows for the Admin panel, each with devices: [...] (or null when limits are off).
+async function withSeats(keys) {
+  const seats = await readAllSeats();
+  return withPlainKeys(keys).map(k => ({ ...k, devices: seats ? (seats[k.id] || []) : null }));
+}
+
 async function adminList() {
   const admin = requireToken();
   const { data } = await readRemoteList(admin.token);
-  return withPlainKeys(data.keys);
+  return withSeats(data.keys);
 }
 
-async function adminAdd(name, note) {
+function parseMax(n) {
+  const v = Math.floor(Number(n));
+  return Number.isFinite(v) && v > 0 ? Math.min(v, 99) : 0;
+}
+
+async function adminSetMax(id, maxDevices) {
+  const admin = requireToken();
+  const max = parseMax(maxDevices);
+  const data = await editRemoteList(admin.token, `Access: giới hạn số máy key ${id}`, d => {
+    const k = d.keys.find(x => x.id === id);
+    if (!k) throw new Error('Không tìm thấy key này nữa.');
+    if (max) k.maxDevices = max; else delete k.maxDevices;
+  });
+  return withSeats(data.keys);
+}
+
+async function adminRemoveDevice(keyId, devId) {
+  const admin = requireToken();
+  if (!seatsOn()) throw new Error('Chưa kết nối Firebase.');
+  await writeSeat(keyId, devId, null).catch(e => { throw new Error('Không gỡ được máy (' + e.message + ').'); });
+  const { data } = await readRemoteList(admin.token);
+  return withSeats(data.keys);
+}
+
+async function adminAdd(name, note, maxDevices) {
   const admin = requireToken();
   name = String(name || '').trim();
   if (!name) throw new Error('Hãy nhập tên người dùng.');
@@ -242,11 +393,12 @@ async function adminAdd(name, note) {
   const data = await editRemoteList(admin.token, `Access: thêm key cho ${name}`, d => {
     d.keys.push({
       id, name, note: String(note || '').trim(), hash: hashKey(key), active: true,
-      created: new Date().toISOString().slice(0, 10)
+      created: new Date().toISOString().slice(0, 10),
+      ...(parseMax(maxDevices) ? { maxDevices: parseMax(maxDevices) } : {})
     });
   });
   rememberKey(id, key);
-  return { id, key, keys: withPlainKeys(data.keys) };
+  return { id, key, keys: await withSeats(data.keys) };
 }
 
 // Gives an existing person a fresh key (their old key stops working). Used when the old key
@@ -261,7 +413,8 @@ async function adminRegenerate(id) {
     k.active = true;
   });
   rememberKey(id, key);
-  return { key, keys: withPlainKeys(data.keys) };
+  if (seatsOn()) await writeSeat(id, null, null).catch(() => {}); // new key = start with no machines
+  return { key, keys: await withSeats(data.keys) };
 }
 
 async function adminSetActive(id, active) {
@@ -270,7 +423,7 @@ async function adminSetActive(id, active) {
     const k = d.keys.find(x => x.id === id);
     if (k) k.active = !!active;
   });
-  return withPlainKeys(data.keys);
+  return withSeats(data.keys);
 }
 
 async function adminRemove(id) {
@@ -279,7 +432,8 @@ async function adminRemove(id) {
     d.keys = d.keys.filter(x => x.id !== id);
   });
   rememberKey(id, null);
-  return withPlainKeys(data.keys);
+  if (seatsOn()) await writeSeat(id, null, null).catch(() => {});
+  return withSeats(data.keys);
 }
 
 // ---- wiring ----------------------------------------------------------------
@@ -298,7 +452,10 @@ function initLicense(getWindow) {
   handle('admin-login', token => adminLogin(token));
   handle('admin-logout', () => { adminLogout(); return checkAccess(); });
   handle('admin-list', () => adminList());
-  handle('admin-add', (name, note) => adminAdd(name, note));
+  handle('admin-add', (name, note, max) => adminAdd(name, note, max));
+  handle('admin-set-max', (id, max) => adminSetMax(id, max));
+  handle('admin-remove-device', (keyId, devId) => adminRemoveDevice(keyId, devId));
+  handle('admin-seats-on', () => seatsOn());
   handle('admin-set-active', (id, active) => adminSetActive(id, active));
   handle('admin-remove', id => adminRemove(id));
   handle('admin-regenerate', id => adminRegenerate(id));
