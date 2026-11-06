@@ -9,6 +9,8 @@ Chủ repo (Mondiro) là artist, không phải lập trình viên. Trả lời b
 - Nội dung bảng thông báo cập nhật lấy từ `release-notes.md` (tiêu đề `# v<version>` + các dòng bên dưới).
   Claude **tự viết** 1–3 dòng ngắn, tiếng Việt, mô tả thay đổi theo cách người dùng hiểu —
   không chép commit message. Nếu Mondiro có đưa note thì ghi đúng những dòng đó.
+- **Thay đổi về key, giới hạn quyền/số máy, quyền Admin, mật khẩu, khóa app** → bảng thông báo chỉ ghi đúng
+  1 dòng `Update Administrator`, không ghi chi tiết (các thay đổi khác cùng bản vẫn ghi bình thường).
 - Đổi `version` (hoặc `release-notes.md`) rồi push lên `main` thì GitHub Actions sẽ tự build và phát hành.
   App đã cài sẽ tự cập nhật. Sau khi push, chờ build xong và báo kết quả.
 

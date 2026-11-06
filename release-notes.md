@@ -4,5 +4,8 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
+# v2.13.1
+- Update Administrator
+
 # v2.13.0
-- Mỗi key giờ có giới hạn số máy được dùng; khi đã đủ máy, máy mới sẽ báo không đăng nhập được
+- Update Administrator
