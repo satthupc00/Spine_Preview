@@ -22,7 +22,8 @@
       "note": "",
       "hash": "9bccd56a0843d3c945aa5802016b21c2d9b1ee5c8ab3c90c2231e1f0c278a9df",
       "active": true,
-      "created": "2026-10-02"
+      "created": "2026-10-02",
+      "maxDevices": 7
     },
     {
       "id": "k_7d7199d9",
