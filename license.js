@@ -33,7 +33,7 @@ const RECHECK_MS = 15 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 10000;
 // Firestore project that holds the seat lists (collection spv_seats, one document per key id,
 // field devices = { <deviceId>: { name, first, seen } }). Empty = machine limits are off.
-const FIREBASE_PROJECT = '';
+const FIREBASE_PROJECT = 'spine-preview';
 const SEATS_URL = () => `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/spv_seats`;
 const SEEN_EVERY_MS = 12 * 3600 * 1000; // refresh a machine's "last seen" at most this often
 const KEY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid typos
