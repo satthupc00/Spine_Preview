@@ -121,6 +121,11 @@ body { display: flex; flex-direction: column; }
 }
 
 #json-list-panel { width: 220px; min-width: 220px; flex: 0 0 220px; }
+/* drag handle between Json List and the preview; sits inside the 10px column gap */
+#json-resizer { flex: 0 0 6px; margin: 0 -8px; cursor: ew-resize; border-radius: 3px; position: relative; z-index: 2; transition: background var(--t-fast, .15s) ease; }
+#json-resizer:hover, #json-resizer.active { background: var(--accent); }
+#json-list-panel.dock-off + #json-resizer { display: none; }
+body.col-resizing, body.col-resizing * { cursor: ew-resize !important; user-select: none; }
 #preview-panel { flex: 1 1 auto; min-width: 0; background: var(--bg-card); position: relative; }
 #properties-panel { width: 270px; min-width: 270px; flex: 0 0 270px; }
 /* The Properties column scrolls when the window is short (the cards no longer fit under each

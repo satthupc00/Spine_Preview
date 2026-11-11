@@ -132,7 +132,10 @@
   function place(p) {
     const s = state[p.dataset.panel] || {};
     // default: data-default-x / -y on the section, else top-right just left of the Properties column
-    const dx = p.dataset.defaultX != null ? Number(p.dataset.defaultX) : window.innerWidth - p.offsetWidth - 300;
+    // data-default-x is measured from the Preview panel's left edge (Json List width varies)
+    const pv = document.getElementById('preview-panel');
+    const pvLeft = pv ? pv.getBoundingClientRect().left : 0;
+    const dx = p.dataset.defaultX != null ? pvLeft + Number(p.dataset.defaultX) : window.innerWidth - p.offsetWidth - 300;
     const dy = p.dataset.defaultY != null ? Number(p.dataset.defaultY) : HEADER_H + 70;
     const x = s.x != null ? s.x : dx;
     const y = s.y != null ? s.y : dy;
@@ -209,6 +212,38 @@
     e.preventDefault();
     toggle(p);
   });
+
+  // ---- Json List width: drag the handle on its right edge (220px … JSON_MAX_W), remembered ----
+  const JSON_MIN_W = 220, JSON_MAX_W = 480;
+  const jsonPanel = document.getElementById('json-list-panel');
+  const jsonGrip = document.getElementById('json-resizer');
+  const setJsonWidth = w => {
+    w = Math.round(Math.max(JSON_MIN_W, Math.min(JSON_MAX_W, w)));
+    jsonPanel.style.width = w + 'px';
+    jsonPanel.style.flexBasis = w + 'px';
+    return w;
+  };
+  if (jsonPanel && jsonGrip) {
+    if (state.jsonWidth) setJsonWidth(state.jsonWidth);
+    jsonGrip.addEventListener('pointerdown', ev => {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      const startX = ev.clientX, startW = jsonPanel.getBoundingClientRect().width;
+      jsonGrip.classList.add('active');
+      document.body.classList.add('col-resizing');
+      const move = e => { state.jsonWidth = setJsonWidth(startW + e.clientX - startX); };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        jsonGrip.classList.remove('active');
+        document.body.classList.remove('col-resizing');
+        save();
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    });
+    jsonGrip.addEventListener('dblclick', () => { state.jsonWidth = setJsonWidth(JSON_MIN_W); save(); });
+  }
 
   // keep open panels inside the window when it is resized
   window.addEventListener('resize', () => panels.forEach(p => { if (!p.hidden) {
