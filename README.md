@@ -2,11 +2,12 @@
 
 **Phiên bản:** 2.9.0 · **Tác giả:** Mondiro
 
-Công cụ desktop (Windows) để xem trước và xuất animation từ **Spine 3.7.94**. Kéo thả file `.json` export từ Spine vào app để xem animation, dựng Sequence nhiều layer, mix animation và kiểm tra timing theo frame hoặc giây.
+Công cụ desktop (Windows) để xem trước và xuất animation từ **Spine 3.7.94** và **Spine 4.2** (app tự nhận phiên bản từ file json). Kéo thả file `.json` export từ Spine vào app để xem animation, dựng Sequence nhiều layer, mix animation và kiểm tra timing theo frame hoặc giây.
 
 ## Tính năng chính
 
-- Xem trước animation Spine 3.7.94 (json + atlas + png)
+- Xem trước animation Spine 3.7.94 và 4.2, kể cả physics của 4.2 (json + atlas + png)
+- Bật ô Bone trong Properties để xem bone trong khung nhìn
 - **Sequencer**: xếp nhiều animation theo timeline, mixer anim giữa các clip
 - **Loop / Loop Locally**: mỗi layer tự lặp danh sách anim của nó (giống prefab trong engine game)
 - Thanh scrub có nút Play/Stop, hiển thị thời gian theo **Frame** hoặc **Giây**

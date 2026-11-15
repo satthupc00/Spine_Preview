@@ -3,9 +3,12 @@
 //
 // Everything Spine-specific — bone transform inherit modes, timeline semantics, additive/
 // multiply/screen blend, clipping attachments, weighted meshes, IK, deform — is handled by the
-// official Spine runtime that pixi-spine bundles (it auto-detects the 3.7 skeleton version from
-// the json). This file only owns the *stage*: viewport, zoom/pan, per-instance placement,
-// hit-testing, selection overlay, and PNG extraction.
+// official Spine runtimes: pixi-spine for 3.7 … 4.1 json (it auto-detects the version), and
+// @esotericsoftware/spine-pixi-v7 (spine42.js) for 4.2 json, which adds physics. Which one a file
+// gets is decided from "skeleton.spine" in the json; a 4.2 instance carries `_rt42 = true` and the
+// same `spineData` / `skeleton` / `state` / `update(dt)` surface the rest of the app uses.
+// This file only owns the *stage*: viewport, zoom/pan, per-instance placement, hit-testing,
+// selection overlay, bone overlay and PNG extraction.
 //
 // Scene graph:
 //   app.stage
@@ -14,14 +17,23 @@
 //     └── overlay        <- selection boxes, drawn in SCREEN space so the 1px stroke
 //                           stays 1px at any zoom level
 // ---------------------------------------------------------------------------
+const fs = require('fs');
+const path = require('path');
 const PIXI = require('pixi.js');
 const { Spine } = require('pixi-spine');
+const S42 = require('./spine42.js');
 
-// NOTE ON Y AXIS: pixi-spine already converts the skeleton's y-up space into PIXI's y-down
-// display space itself, so the container must NOT be flipped again — doing that rendered every
-// skeleton upside down. Consequence: `content` is a plain y-down container, world coordinates
-// used for instance positions / hit-testing / marquee are y-DOWN, and a bone's display-space y
-// is the negation of its skeleton-space worldY (see rootWorldPos).
+// NOTE ON Y AXIS: both runtimes already convert the skeleton's y-up space into PIXI's y-down
+// display space themselves (yDown), so the container must NOT be flipped again — doing that
+// rendered every skeleton upside down. Consequence: `content` is a plain y-down container, world
+// coordinates used for instance positions / hit-testing / marquee are y-DOWN, and a bone's
+// worldX / worldY are already in the Spine display object's local (y-down) space.
+
+// "4.2.37" -> true when the json needs the 4.2 runtime (4.2 and newer).
+function needsRuntime42(version) {
+  const m = /^(\d+)\.(\d+)/.exec(String(version || ''));
+  return !!m && (Number(m[1]) > 4 || (Number(m[1]) === 4 && Number(m[2]) >= 2));
+}
 
 function toAssetUrl(absolutePath) {
   const normalized = String(absolutePath).replace(/\\/g, '/');
@@ -105,6 +117,15 @@ class SpineStage {
       PIXI.Assets.setPreferences({ preferWorkers: false, crossOrigin: 'anonymous' });
     }
 
+    let json = null;
+    try { json = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch (e) { /* pixi-spine reports it below */ }
+    const version = json && json.skeleton && json.skeleton.spine;
+    if (needsRuntime42(version)) {
+      const data42 = await SpineStage._loadSkeletonData42(json, atlasPath);
+      SpineStage._cache.set(jsonPath, data42);
+      return data42;
+    }
+
     const resource = await PIXI.Assets.load({
       src: toAssetUrl(jsonPath),
       data: { spineAtlasFile: toAssetUrl(atlasPath) }
@@ -122,6 +143,34 @@ class SpineStage {
 
     SpineStage._cache.set(jsonPath, resource.spineData);
     return resource.spineData;
+  }
+
+  // Spine 4.2: parse the atlas + json with the official runtime; page images go through
+  // PIXI.Assets (same spine-asset:// protocol), without createImageBitmap so premultiplied pages
+  // keep their alpha mode.
+  static async _loadSkeletonData42(json, atlasPath) {
+    const atlas = new S42.TextureAtlas(fs.readFileSync(atlasPath, 'utf-8'));
+    const dir = path.dirname(atlasPath);
+    PIXI.Assets.setPreferences({ preferCreateImageBitmap: false });
+    try {
+      for (const page of atlas.pages) {
+        const src = toAssetUrl(path.join(dir, page.name));
+        if (PIXI.Assets.cache.has(src)) await PIXI.Assets.unload(src); // re-read an image edited since
+        const texture = await PIXI.Assets.load({ src, data: { alphaMode: page.pma ? PIXI.ALPHA_MODES.PMA : PIXI.ALPHA_MODES.UNPACK } });
+        if (!texture || !texture.baseTexture) throw new Error('Không tải được ảnh ' + page.name);
+        page.setTexture(S42.SpineTexture.from(texture.baseTexture));
+      }
+    } finally {
+      PIXI.Assets.setPreferences({ preferCreateImageBitmap: true });
+    }
+    const data = new S42.SkeletonJson(new S42.AtlasAttachmentLoader(atlas)).readSkeletonData(json);
+    data._rt42 = true;
+    return data;
+  }
+
+  // Spine editor version the skeleton was exported from, e.g. "3.7.94" / "4.2.37".
+  static dataVersion(spineData) {
+    return (spineData && spineData.version) || '';
   }
 
   static _waitForAtlasTextures(atlas, timeoutMs = 8000) {
@@ -154,7 +203,14 @@ class SpineStage {
 
   // ---- instances ----------------------------------------------------------
   createSpine(spineData) {
-    const spine = new Spine(spineData);
+    let spine;
+    if (spineData._rt42) {
+      spine = new S42.Spine({ skeletonData: spineData, autoUpdate: false });
+      spine.spineData = spineData; // same name pixi-spine uses
+      spine._rt42 = true;
+    } else {
+      spine = new Spine(spineData);
+    }
     spine.autoUpdate = false; // renderer.js advances time so scrubbing and pause stay exact
     this.content.addChild(spine);
     return spine;
@@ -252,12 +308,11 @@ class SpineStage {
     }
     if (!root) root = bones[0];
     if (!root) return { x: spine.position.x, y: spine.position.y };
-    // bone world coords are in skeleton space; the Spine display object applies its own
-    // position + scale on top of that.
-    // bone.worldY is skeleton space (y-up); display space is y-down, hence the negation.
+    // bone world coords are in the Spine display object's local space (already y-down); the
+    // display object applies its own position + scale on top of that.
     return {
       x: spine.position.x + root.worldX * spine.scale.x,
-      y: spine.position.y - root.worldY * spine.scale.y
+      y: spine.position.y + root.worldY * spine.scale.y
     };
   }
 
@@ -314,6 +369,41 @@ class SpineStage {
     this.overlayGfx.drawRect(left, top, w, h);
   }
 
+  // Bone overlay (Properties > Bone): every bone as a Spine-style kite from its joint to its
+  // tip, zero-length bones as a small ring. Drawn in screen space so it stays crisp at any zoom.
+  drawBones(spine) {
+    const g = this.overlayGfx;
+    const sx = spine.scale.x * this.zoom, sy = spine.scale.y * this.zoom;
+    const { width, height } = this._viewportSize();
+    const ox = spine.position.x * this.zoom + width / 2 + this.panX;
+    const oy = spine.position.y * this.zoom + height / 2 + this.panY;
+    const FILL = 0xd9d9d9, EDGE = 0x1b1d21;
+    for (const bone of spine.skeleton.bones) {
+      if (bone.active === false) continue; // 4.x: bone of a skin that is not applied
+      // world x axis of the bone: pixi-spine keeps it in bone.matrix (a, b), spine-core in (a, c)
+      const ax = spine._rt42 ? bone.a : bone.matrix.a;
+      const ay = spine._rt42 ? bone.c : bone.matrix.b;
+      const x0 = ox + bone.worldX * sx, y0 = oy + bone.worldY * sy;
+      const len = bone.data.length || 0;
+      const dx = ax * len * sx, dy = ay * len * sy;
+      const px = Math.hypot(dx, dy);
+      if (px >= 4) {
+        const ux = dx / px, uy = dy / px;
+        const w = Math.max(1.5, Math.min(5, px * 0.09)); // half width of the kite
+        const k = Math.min(px * 0.18, 12);               // where it is widest
+        const mx = x0 + ux * k, my = y0 + uy * k;
+        g.lineStyle({ width: 1, color: EDGE, alpha: 0.9, alignment: 0.5 });
+        g.beginFill(FILL, 0.55);
+        g.drawPolygon([x0, y0, mx - uy * w, my + ux * w, x0 + dx, y0 + dy, mx + uy * w, my - ux * w]);
+        g.endFill();
+      }
+      g.lineStyle({ width: 1, color: EDGE, alpha: 0.9, alignment: 0.5 });
+      g.beginFill(FILL, 0.9);
+      g.drawCircle(x0, y0, px >= 4 ? 2 : 3);
+      g.endFill();
+    }
+  }
+
   render() {
     this.app.renderer.render(this.app.stage);
   }
@@ -346,8 +436,8 @@ class SpineStage {
       const root = bones.find(b => ((b.data && b.data.name) || '').toLowerCase() === 'root') || bones[0];
       const rx = root ? root.worldX : 0;
       const ry = root ? root.worldY : 0;
-      // Root bone dead centre of the export canvas (display y is -worldY, as above).
-      spine.position.set(exportW / 2 - rx * s, exportH / 2 + ry * spine.scale.y);
+      // Root bone dead centre of the export canvas.
+      spine.position.set(exportW / 2 - rx * s, exportH / 2 - ry * spine.scale.y);
 
       this.app.renderer.render(holder, { renderTexture, clear: true });
       return SpineStage._lightAwarePng(this.app.renderer, renderTexture, exportW, exportH);
@@ -439,11 +529,29 @@ class SpineStage {
     return dur > 0 ? entry.trackTime % dur : entry.trackTime;
   }
 
-  static seek(spine, time) {
+  // `physicsDt` (4.2 only): seconds of playback this seek stands for. The Sequencer poses its
+  // layers by time every frame, so while it plays it passes the frame's dt and physics keeps
+  // simulating; a plain seek (scrub, first / last frame) leaves it 0 and physics is reset.
+  static seek(spine, time, physicsDt = 0) {
     const entry = spine.state.tracks[0];
     if (!entry || !entry.animation) return;
     entry.trackTime = Math.max(0, Math.min(time, entry.animation.duration));
+    SpineStage._applyPose(spine, physicsDt);
+  }
+
+  // Push the AnimationState's current times into the skeleton and the display object.
+  // 4.2 physics is a simulation over time: with physicsDt > 0 it advances by that much, otherwise
+  // the simulated bones are put back on the animated pose so nothing is left swinging from where
+  // the playhead used to be.
+  static _applyPose(spine, physicsDt = 0) {
+    if (!spine._rt42) { spine.update(0); return; }
     spine.update(0);
+    if (physicsDt > 0) {
+      spine.skeleton.update(physicsDt);
+      spine.skeleton.updateWorldTransform(S42.Physics.update);
+    } else {
+      spine.skeleton.updateWorldTransform(S42.Physics.reset);
+    }
   }
 
   static advance(spine, dt) {
@@ -470,7 +578,7 @@ class SpineStage {
   // skeleton's internal pose was updating correctly every frame, but nothing pushed it to what PIXI
   // actually draws, so the last frame drawn before entering the overlap stayed on screen the whole
   // time.
-  static playBlend(spine, animNameA, timeA, animNameB, timeB, alpha) {
+  static playBlend(spine, animNameA, timeA, animNameB, timeB, alpha, physicsDt = 0) {
     const state = spine.state;
     const EPS = 0.001;
     let cur = state.tracks[0];
@@ -491,7 +599,7 @@ class SpineStage {
       cur.mixingFrom.alpha = 1;
       cur.mixingFrom.trackTime = Math.max(0, timeA);
     }
-    spine.update(0);
+    SpineStage._applyPose(spine, physicsDt);
   }
 }
 

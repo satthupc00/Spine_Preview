@@ -4,6 +4,10 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
+# v2.15.0
+- Mở được file json của Spine 4.2 (có physics), app tự nhận phiên bản và hiện nhãn 3.7 / 4.2 trong Json List
+- Thêm ô Bone ở mục Background để xem bone của skeleton trong khung nhìn
+
 # v2.14.0
 - Kéo mép phải của Json List để nới rộng (tối đa 480px), nhấp đúp để về mặc định
 

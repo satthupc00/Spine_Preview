@@ -682,6 +682,8 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .prop-title { font-weight: 700; margin-bottom: 8px; font-size: 12.5px; color: var(--accent2); letter-spacing: .01em; }
+.prop-title-row { display: flex; align-items: center; justify-content: space-between; }
+.bone-toggle { font-weight: 500; font-size: 12px; color: var(--text); letter-spacing: 0; }
 .prop-hint { color: var(--text-dim); font-size: 11px; margin: -4px 0 8px; }
 
 .prop-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
@@ -1435,6 +1437,8 @@ select:not(:disabled):hover, input[type="text"]:hover, input[type="number"]:not(
 
 /* small ✕ delete button on Json List / Thứ tự vẽ rows: shows on hover or when selected */
 .json-item { display: flex; align-items: center; gap: 6px; }
+.json-ver { flex: 0 0 auto; font-size: 10px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 4px; color: var(--text-dim); background: rgba(255, 255, 255, .06); font-variant-numeric: tabular-nums; }
+.json-ver.v42 { color: #7CC4FF; background: rgba(124, 196, 255, .12); }
 .json-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-x {
   flex: 0 0 auto;

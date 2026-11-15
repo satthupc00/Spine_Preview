@@ -313,6 +313,12 @@ function renderJsonList() {
       const nameEl = document.createElement('span');
       nameEl.className = 'json-name';
       nameEl.textContent = entry.valid ? entry.name : `${entry.name} — ${entry.error}`;
+      // Spine version the json was exported from ("3.7", "4.2"…)
+      const ver = entry.valid ? SpineStage.dataVersion(entry.spineData).split('.').slice(0, 2).join('.') : '';
+      const verEl = document.createElement('span');
+      verEl.className = 'json-ver' + (entry.spineData && entry.spineData._rt42 ? ' v42' : '');
+      verEl.textContent = ver;
+      verEl.title = ver ? 'Xuất từ Spine ' + SpineStage.dataVersion(entry.spineData) : '';
       const xBtn = document.createElement('button');
       xBtn.type = 'button';
       xBtn.className = 'row-x';
@@ -325,7 +331,7 @@ function renderJsonList() {
         libSelection = [entry.key];
         deleteSelectedJson();
       });
-      item.append(nameEl, xBtn);
+      item.append(nameEl, ...(ver ? [verEl] : []), xBtn);
       item.title = entry.jsonPath;
       item.dataset.key = entry.key;
       item.addEventListener('click', ev => {
@@ -2073,6 +2079,7 @@ tabBtnPreview.addEventListener('click', () => setActiveTab('preview'));
 tabBtnSequencer.addEventListener('click', () => setActiveTab('sequencer'));
 
 function advanceSequencer(dt) {
+  const physicsDt = seqPlaying ? dt : 0; // Spine 4.2 physics only simulates while playing
   if (seqPlaying) {
     seqPlayhead += dt;
     // Loop Locally: each layer is its own independent "prefab" looping on its own cycle (see
@@ -2116,7 +2123,7 @@ function advanceSequencer(dt) {
       const timeA = (t - a.start) % a.baseDuration;
       const timeB = (t - b.start) % b.baseDuration;
       try {
-        SpineStage.playBlend(layer.spine, a.animName, timeA, b.animName, timeB, alpha);
+        SpineStage.playBlend(layer.spine, a.animName, timeA, b.animName, timeB, alpha, physicsDt);
       } catch (e) {
         tickErrorOnce('blend:' + layer.id, 'Lỗi khi blend animation cho layer ' + layer.id, e);
       }
@@ -2135,7 +2142,7 @@ function advanceSequencer(dt) {
         layer._activeClipId = clip.id;
       }
       const localTime = (t - clip.start) % clip.baseDuration;
-      SpineStage.seek(layer.spine, localTime);
+      SpineStage.seek(layer.spine, localTime, physicsDt);
     } else {
       layer.spine.visible = false;
       layer._activeClipId = null;
@@ -2189,6 +2196,7 @@ function tick(now) {
       instances.forEach(inst => {
         try {
           inst.bounds = stage.worldBoundsOf(inst.spine);
+          if (showBones) stage.drawBones(inst.spine);
           if (showBoxes && selection.includes(inst.id)) {
             stage.drawSelectionBox(inst.spine, inst.exportW, inst.exportH, strokeColor);
           }
@@ -2210,6 +2218,7 @@ function tick(now) {
       seqLayers.forEach(layer => {
         try {
           layer._bounds = (layer.spine && layer.spine.visible) ? stage.worldBoundsOf(layer.spine) : null;
+          if (showBones && layer.spine && layer.spine.visible) stage.drawBones(layer.spine);
         } catch (e) {
           tickErrorOnce('seqbounds:' + layer.id, 'Lỗi khi tính bounds cho layer ' + layer.id, e);
           layer._bounds = null;
@@ -2479,6 +2488,19 @@ window.addEventListener('keydown', ev => {
     deleteSelectedJson();
   }
 }, true);
+
+// Properties > Bone: draw every skeleton's bones over the viewport (remembered).
+let showBones = false;
+try { showBones = localStorage.getItem('spv-show-bones') === '1'; } catch (e) { /* default: hidden */ }
+const showBonesEl = document.getElementById('show-bones');
+if (showBonesEl) {
+  showBonesEl.checked = showBones;
+  showBonesEl.addEventListener('change', () => {
+    showBones = showBonesEl.checked;
+    try { localStorage.setItem('spv-show-bones', showBones ? '1' : '0'); } catch (e) { /* not critical */ }
+    showBonesEl.blur(); // keep Space / D on playback
+  });
+}
 
 // Ctrl+H: show / hide the W×H stroke boxes drawn around selected skeletons (remembered).
 let showBoxes = true;

@@ -53,7 +53,7 @@
         <div id="marquee-box"></div>
         <div id="preview-empty-hint">
           <div class="empty-title">Kéo file .json vào đây</div>
-          <div class="empty-sub">Hoặc kéo skeleton từ Json List bên trái. Spine 3.7.94, kèm .atlas + .png cùng thư mục.</div>
+          <div class="empty-sub">Hoặc kéo skeleton từ Json List bên trái. Spine 3.7 hoặc 4.2, kèm .atlas + .png cùng thư mục.</div>
         </div>
         <div id="sequencer-empty-hint" hidden>Kéo json từ Json List vào khung nhìn hoặc xuống thanh timeline bên dưới — tự thêm anim đầu tiên</div>
         <div id="zoom-flash" class="zoom-flash">100%</div>
@@ -96,7 +96,9 @@
       <div class="panel-header">Properties</div>
 
       <div class="prop-section card">
-        <div class="prop-title">Background</div>
+        <div class="prop-title prop-title-row">Background
+          <label class="checkbox-label bone-toggle" title="Hiện bone của các skeleton trong khung nhìn"><input type="checkbox" id="show-bones"> Bone</label>
+        </div>
         <div class="prop-row">
           <label>Màu</label>
           <input type="color" id="bg-color" value="#4a4a4a">

@@ -66,10 +66,15 @@ const Checklist = (() => {
       snap.constraints['IK "' + c.data.name + '"'] = { mix: c.mix, bend: c.bendDirection, compress: c.compress, stretch: c.stretch };
     });
     (sk.transformConstraints || []).forEach(c => {
-      snap.constraints['Transform "' + c.data.name + '"'] = { rotateMix: c.rotateMix, translateMix: c.translateMix, scaleMix: c.scaleMix, shearMix: c.shearMix };
+      snap.constraints['Transform "' + c.data.name + '"'] = { rotateMix: c.rotateMix, translateMix: c.translateMix, scaleMix: c.scaleMix, shearMix: c.shearMix,
+        mixRotate: c.mixRotate, mixX: c.mixX, mixY: c.mixY, mixScaleX: c.mixScaleX, mixScaleY: c.mixScaleY, mixShearY: c.mixShearY }; // 4.x names
     });
     (sk.pathConstraints || []).forEach(c => {
-      snap.constraints['Path "' + c.data.name + '"'] = { position: c.position, spacing: c.spacing, rotateMix: c.rotateMix, translateMix: c.translateMix };
+      snap.constraints['Path "' + c.data.name + '"'] = { position: c.position, spacing: c.spacing, rotateMix: c.rotateMix, translateMix: c.translateMix,
+        mixRotate: c.mixRotate, mixX: c.mixX, mixY: c.mixY };
+    });
+    (sk.physicsConstraints || []).forEach(c => { // Spine 4.2
+      snap.constraints['Physics "' + c.data.name + '"'] = { inertia: c.inertia, strength: c.strength, damping: c.damping, massInverse: c.massInverse, wind: c.wind, gravity: c.gravity, mix: c.mix };
     });
     return snap;
   }
