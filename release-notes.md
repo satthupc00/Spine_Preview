@@ -4,6 +4,10 @@ Nội dung hiện trong bảng thông báo cập nhật của app.
 - Bên dưới ghi các dòng muốn hiện cho người dùng.
 Nếu tiêu đề không khớp version hoặc chưa có nội dung, GitHub sẽ không build bản mới.
 -->
+# v2.16.0
+- Export PNG lưu thẳng vào thư mục đã chọn (không tạo thư mục con); trùng tên thì tự thêm _01, _02…
+- Thêm ô Tên cạnh ô Bone để bật/tắt hiển thị tên bone
+
 # v2.15.0
 - Mở được file json của Spine 4.2 (có physics), app tự nhận phiên bản và hiện nhãn 3.7 / 4.2 trong Json List
 - Thêm ô Bone ở mục Background để xem bone của skeleton trong khung nhìn

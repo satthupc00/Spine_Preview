@@ -994,8 +994,7 @@ exportBtn.addEventListener('click', async () => {
   for (const inst of sel) {
     try {
       const dataUrl = stage.extractInstancePng(inst.spine, inst.exportW, inst.exportH);
-      const subFolder = path.basename(library.get(inst.key).folder);
-      const res = await ipcRenderer.invoke('export-png', { outputRoot, subFolder, fileName: inst.name, dataUrl });
+      const res = await ipcRenderer.invoke('export-png', { outputRoot, fileName: inst.name, dataUrl });
       if (res.ok) ok++; else fail++;
     } catch (e) {
       fail++;
@@ -2196,7 +2195,7 @@ function tick(now) {
       instances.forEach(inst => {
         try {
           inst.bounds = stage.worldBoundsOf(inst.spine);
-          if (showBones) stage.drawBones(inst.spine);
+          if (showBones) stage.drawBones(inst.spine, showBoneNames);
           if (showBoxes && selection.includes(inst.id)) {
             stage.drawSelectionBox(inst.spine, inst.exportW, inst.exportH, strokeColor);
           }
@@ -2218,7 +2217,7 @@ function tick(now) {
       seqLayers.forEach(layer => {
         try {
           layer._bounds = (layer.spine && layer.spine.visible) ? stage.worldBoundsOf(layer.spine) : null;
-          if (showBones && layer.spine && layer.spine.visible) stage.drawBones(layer.spine);
+          if (showBones && layer.spine && layer.spine.visible) stage.drawBones(layer.spine, showBoneNames);
         } catch (e) {
           tickErrorOnce('seqbounds:' + layer.id, 'Lỗi khi tính bounds cho layer ' + layer.id, e);
           layer._bounds = null;
@@ -2499,7 +2498,27 @@ if (showBonesEl) {
     showBones = showBonesEl.checked;
     try { localStorage.setItem('spv-show-bones', showBones ? '1' : '0'); } catch (e) { /* not critical */ }
     showBonesEl.blur(); // keep Space / D on playback
+    syncBoneNamesEl();
   });
+}
+
+// Properties > Tên: bone names next to the bones (only while Bone is on; remembered).
+let showBoneNames = false;
+try { showBoneNames = localStorage.getItem('spv-show-bone-names') === '1'; } catch (e) { /* default: hidden */ }
+const showBoneNamesEl = document.getElementById('show-bone-names');
+function syncBoneNamesEl() {
+  if (!showBoneNamesEl) return;
+  showBoneNamesEl.disabled = !showBones;
+  showBoneNamesEl.parentElement.classList.toggle('disabled', !showBones);
+}
+if (showBoneNamesEl) {
+  showBoneNamesEl.checked = showBoneNames;
+  showBoneNamesEl.addEventListener('change', () => {
+    showBoneNames = showBoneNamesEl.checked;
+    try { localStorage.setItem('spv-show-bone-names', showBoneNames ? '1' : '0'); } catch (e) { /* not critical */ }
+    showBoneNamesEl.blur();
+  });
+  syncBoneNamesEl();
 }
 
 // Ctrl+H: show / hide the W×H stroke boxes drawn around selected skeletons (remembered).

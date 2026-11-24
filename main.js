@@ -166,12 +166,18 @@ ipcMain.handle('choose-output-folder', async () => {
 });
 
 // ---- IPC: export a PNG from a dataURL ----
-ipcMain.handle('export-png', async (event, { outputRoot, subFolder, fileName, dataUrl }) => {
+// The PNG goes straight into the chosen folder. A name that is already taken there (an earlier
+// export, or two skeletons with the same name in one export) gets _01, _02… appended, so nothing
+// is ever overwritten.
+ipcMain.handle('export-png', async (event, { outputRoot, fileName, dataUrl }) => {
   if (isLocked()) return { ok: false, error: 'App chưa được kích hoạt.' };
   try {
-    const dir = path.join(outputRoot, subFolder);
-    fs.mkdirSync(dir, { recursive: true });
-    const filePath = path.join(dir, fileName.endsWith('.png') ? fileName : fileName + '.png');
+    fs.mkdirSync(outputRoot, { recursive: true });
+    const base = String(fileName).replace(/\.png$/i, '');
+    let filePath = path.join(outputRoot, base + '.png');
+    for (let n = 1; fs.existsSync(filePath); n++) {
+      filePath = path.join(outputRoot, `${base}_${String(n).padStart(2, '0')}.png`);
+    }
     const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
     fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
     return { ok: true, filePath };

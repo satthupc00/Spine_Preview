@@ -84,6 +84,8 @@ class SpineStage {
     this.app.stage.addChild(this.overlay);
     this._labelPool = []; // PIXI.Text objects reused across frames
     this._labelsUsed = 0;
+    this._boneLabelPool = []; // bone names (own pool: different text style)
+    this._boneLabelsUsed = 0;
 
     this.zoom = 1;
     this.panX = 0;
@@ -321,6 +323,8 @@ class SpineStage {
     this.overlayGfx.clear();
     this._labelPool.forEach(t => { t.visible = false; });
     this._labelsUsed = 0;
+    this._boneLabelPool.forEach(t => { t.visible = false; });
+    this._boneLabelsUsed = 0;
   }
 
   _takeLabel() {
@@ -332,6 +336,21 @@ class SpineStage {
       this.overlay.addChild(label);
     }
     this._labelsUsed++;
+    label.visible = true;
+    return label;
+  }
+
+  _takeBoneLabel() {
+    let label = this._boneLabelPool[this._boneLabelsUsed];
+    if (!label) {
+      label = new PIXI.Text('', new PIXI.TextStyle({
+        fontFamily: 'Segoe UI, sans-serif', fontSize: 11, fill: 0xffffff, stroke: 0x1b1d21, strokeThickness: 3, lineJoin: 'round'
+      }));
+      label.resolution = window.devicePixelRatio || 1;
+      this._boneLabelPool.push(label);
+      this.overlay.addChild(label);
+    }
+    this._boneLabelsUsed++;
     label.visible = true;
     return label;
   }
@@ -370,8 +389,8 @@ class SpineStage {
   }
 
   // Bone overlay (Properties > Bone): every bone as a Spine-style kite from its joint to its
-  // tip, zero-length bones as a small ring. Drawn in screen space so it stays crisp at any zoom.
-  drawBones(spine) {
+  // tip, zero-length bones as a small ring; `withNames` writes each bone's name at its joint. Drawn in screen space so it stays crisp at any zoom.
+  drawBones(spine, withNames = false) {
     const g = this.overlayGfx;
     const sx = spine.scale.x * this.zoom, sy = spine.scale.y * this.zoom;
     const { width, height } = this._viewportSize();
@@ -401,6 +420,11 @@ class SpineStage {
       g.beginFill(FILL, 0.9);
       g.drawCircle(x0, y0, px >= 4 ? 2 : 3);
       g.endFill();
+      if (withNames) {
+        const label = this._takeBoneLabel();
+        if (label.text !== bone.data.name) label.text = bone.data.name;
+        label.position.set(Math.round(x0 + 5), Math.round(y0 - 15));
+      }
     }
   }
 
